@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales360 - Téléphonie</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">S3</div>
+        <span>Sales360</span>
+      </div>
+      
+      <nav>
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a href="index.html" class="nav-link">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+              </svg>
+              <span>Accueil</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="dashboard.html" class="nav-link">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+              <span data-i18n="dashboard">Tableau de bord</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="contacts.html" class="nav-link">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+              <span data-i18n="contacts">Contacts</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="pipeline.html" class="nav-link">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+              <span data-i18n="pipeline">Pipeline</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="telephony.html" class="nav-link active">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+              </svg>
+              <span data-i18n="telephony">Téléphonie</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="visio.html" class="nav-link">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <span data-i18n="visio">Visioconférence</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="settings.html" class="nav-link">
+              <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              <span data-i18n="settings">Paramètres</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 data-i18n="telephonyTitle">Interface téléphonique</h1>
+        </div>
+        <div class="topbar-right">
+          <div class="lang-switch">
+            <button class="lang-btn active" data-lang="fr">FR</button>
+            <button class="lang-btn" data-lang="en">EN</button>
+          </div>
+          <div class="user-profile">
+            <div class="user-avatar">JD</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="content">
+        <div class="card">
+          <div class="call-interface">
+            <div class="call-avatar">SM</div>
+            <h2 style="font-size: 28px; margin-bottom: 8px;">Sophie Martin</h2>
+            <p class="call-status" data-i18n="incomingCall">Appel entrant...</p>
+            
+            <div class="call-controls">
+              <button class="call-btn call-btn-answer" onclick="answerCall()">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                </svg>
+              </button>
+              
+              <button class="call-btn call-btn-mute">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                </svg>
+              </button>
+              
+              <button class="call-btn call-btn-mute">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+                </svg>
+              </button>
+              
+              <button class="call-btn call-btn-decline" onclick="declineCall()">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z"></path>
+                </svg>
+              </button>
+            </div>
+
+            <div class="keypad">
+              <button class="keypad-btn">1</button>
+              <button class="keypad-btn">2</button>
+              <button class="keypad-btn">3</button>
+              <button class="keypad-btn">4</button>
+              <button class="keypad-btn">5</button>
+              <button class="keypad-btn">6</button>
+              <button class="keypad-btn">7</button>
+              <button class="keypad-btn">8</button>
+              <button class="keypad-btn">9</button>
+              <button class="keypad-btn">*</button>
+              <button class="keypad-btn">0</button>
+              <button class="keypad-btn">#</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Calls -->
+        <div class="card" style="margin-top: 32px;">
+          <div class="card-header">
+            <h3 class="card-title">Appels récents</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Contact</th>
+                  <th>Type</th>
+                  <th>Durée</th>
+                  <th>Date</th>
+                  <th data-i18n="status">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Sophie Martin</td>
+                  <td>Sortant</td>
+                  <td>12:34</td>
+                  <td>20/11/2025 14:32</td>
+                  <td><span class="badge badge-success">Répondu</span></td>
+                </tr>
+                <tr>
+                  <td>Pierre Dupont</td>
+                  <td>Entrant</td>
+                  <td>08:15</td>
+                  <td>20/11/2025 11:20</td>
+                  <td><span class="badge badge-success">Répondu</span></td>
+                </tr>
+                <tr>
+                  <td>Marie Leroy</td>
+                  <td>Sortant</td>
+                  <td>-</td>
+                  <td>20/11/2025 09:45</td>
+                  <td><span class="badge badge-danger">Manqué</span></td>
+                </tr>
+                <tr>
+                  <td>Jean Leblanc</td>
+                  <td>Entrant</td>
+                  <td>15:42</td>
+                  <td>19/11/2025 16:10</td>
+                  <td><span class="badge badge-success">Répondu</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
