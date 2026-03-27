@@ -280,10 +280,16 @@ body {
   align-items: center;
   gap: 8px;
   font-size: 15px;
+  text-decoration: none;
 }
 
 .btn-primary {
   background: var(--accent-orange);
+  color: white;
+}
+
+
+.btn-primary:visited {
   color: white;
 }
 
@@ -298,6 +304,11 @@ body {
   color: var(--text-dark);
 }
 
+
+.btn-secondary:visited {
+  color: var(--text-dark);
+}
+
 .btn-secondary:hover {
   background: var(--border-light);
 }
@@ -305,6 +316,11 @@ body {
 .btn-outline {
   background: transparent;
   border: 2px solid var(--border-light);
+  color: var(--text-dark);
+}
+
+
+.btn-outline:visited {
   color: var(--text-dark);
 }
 
