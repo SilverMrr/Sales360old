@@ -193,6 +193,24 @@
             </div>
           </div>
 
+
+          <!-- AI Section -->
+          <div class="settings-section">
+            <h2 class="settings-title">IA</h2>
+
+            <div class="settings-item" style="align-items: flex-start; flex-direction: column; gap: 12px;">
+              <div>
+                <div class="settings-label">Clé API GPT (unique)</div>
+                <div class="settings-description">Une seule clé GPT est utilisée dans toute l'application. Toute configuration Gemini est supprimée.</div>
+              </div>
+              <div style="display: flex; gap: 8px; width: 100%; max-width: 520px;">
+                <input id="gptApiKey" class="form-input" type="password" placeholder="sk-..." style="flex: 1;">
+                <button id="saveGptKeyBtn" class="btn btn-secondary" type="button">Enregistrer</button>
+              </div>
+              <div id="gptKeyStatus" class="settings-description" aria-live="polite"></div>
+            </div>
+          </div>
+
           <!-- Security Section -->
           <div class="settings-section">
             <h2 class="settings-title">Sécurité</h2>
@@ -234,6 +252,28 @@
     </main>
   </div>
 
+  <script src="ai-engine.js"></script>
   <script src="main.js"></script>
+  <script>
+    (() => {
+      const keyInput = document.getElementById("gptApiKey")
+      const saveBtn = document.getElementById("saveGptKeyBtn")
+      const status = document.getElementById("gptKeyStatus")
+
+      if (!window.Sales360AI || !keyInput || !saveBtn || !status) return
+
+      const existing = window.Sales360AI.getApiKey()
+      if (existing) {
+        keyInput.value = existing
+        status.textContent = "Clé GPT chargée."
+      }
+
+      saveBtn.addEventListener("click", () => {
+        const saved = window.Sales360AI.setApiKey(keyInput.value)
+        window.Sales360AI.setMode("gpt")
+        status.textContent = saved ? "Clé GPT enregistrée avec succès." : "Clé supprimée."
+      })
+    })()
+  </script>
 </body>
 </html>
