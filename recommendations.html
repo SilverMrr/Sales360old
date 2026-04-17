@@ -122,6 +122,30 @@
           </div>
         </div>
 
+
+        <!-- Extraction Request -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+            <h2 style="margin: 0; font-size: 20px;">Demande d'extraction d'appel</h2>
+            <span class="reco-badge reco-badge-opportunity">Nouveau</span>
+          </div>
+          <p class="settings-description" style="margin-bottom: 16px;">Créez une demande d'extraction (transcription + résumé) à partir d'un fichier audio.</p>
+
+          <form id="extractionRequestForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            <input id="extractCallRef" class="form-input" type="text" placeholder="Référence appel (ex: CALL-2026-0417)" required>
+            <input id="extractAudio" class="form-input" type="file" accept="audio/*" required>
+            <select id="extractPriority" class="form-input">
+              <option value="normal">Priorité normale</option>
+              <option value="haute">Priorité haute</option>
+              <option value="critique">Priorité critique</option>
+            </select>
+            <button class="btn btn-primary" type="submit">Créer la demande d'extraction</button>
+          </form>
+
+          <div id="extractionStatus" class="settings-description" aria-live="polite" style="margin-top: 12px;"></div>
+          <div id="extractionRequestsList" style="margin-top: 16px;"></div>
+        </div>
+
         <!-- Filters -->
         <div class="reco-filters">
           <button class="filter-btn active" data-filter="all" data-i18n="all">Toutes</button>
@@ -296,6 +320,81 @@
       </div>
     </main>
   </div>
+
+
+  <script>
+    (() => {
+      const form = document.getElementById("extractionRequestForm")
+      const status = document.getElementById("extractionStatus")
+      const list = document.getElementById("extractionRequestsList")
+      const STORAGE_KEY = "sales360-extraction-requests"
+
+      if (!form || !status || !list) return
+
+      function readRequests() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
+        } catch {
+          return []
+        }
+      }
+
+      function saveRequests(items) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+      }
+
+      function render() {
+        const items = readRequests()
+        if (!items.length) {
+          list.innerHTML = `<div class="settings-description">Aucune demande d'extraction en attente.</div>`
+          return
+        }
+
+        list.innerHTML = items
+          .slice(-5)
+          .reverse()
+          .map(
+            (item) => `
+              <div class="settings-item" style="margin-bottom: 8px;">
+                <div>
+                  <div class="settings-label">${item.callRef}</div>
+                  <div class="settings-description">Fichier: ${item.fileName} • Priorité: ${item.priority} • ${item.createdAt}</div>
+                </div>
+                <span class="reco-badge reco-badge-follow-up">En attente</span>
+              </div>
+            `,
+          )
+          .join("")
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault()
+        const callRef = document.getElementById("extractCallRef").value.trim()
+        const audioInput = document.getElementById("extractAudio")
+        const priority = document.getElementById("extractPriority").value
+        const file = audioInput.files && audioInput.files[0]
+
+        if (!callRef || !file) {
+          status.textContent = "Veuillez remplir la référence d'appel et sélectionner un fichier audio."
+          return
+        }
+
+        const items = readRequests()
+        items.push({
+          callRef,
+          fileName: file.name,
+          priority,
+          createdAt: new Date().toLocaleString("fr-FR"),
+        })
+        saveRequests(items)
+        status.textContent = `Demande d'extraction créée pour ${callRef}.`
+        form.reset()
+        render()
+      })
+
+      render()
+    })()
+  </script>
 
   <script src="main.js"></script>
 </body>
