@@ -31,7 +31,7 @@ async function loadCatalog(attempt = 0) {
     CAT = data;
     document.documentElement.classList.add("tmdb");
     if (screen === "create") renderCreate();
-    if (!data.complete && attempt < 4) setTimeout(() => loadCatalog(attempt + 1), 1500);
+    if (!data.complete && attempt < 10) setTimeout(() => loadCatalog(attempt + 1), 1500);
   } catch {}
 }
 // Appelé par les <img> d'affiche : passe la carte en plein cadre si l'image est assez nette

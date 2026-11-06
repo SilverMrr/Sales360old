@@ -1,6 +1,8 @@
 // Catalogue. Format : [titre FR, année, titre Wikipédia (EN, sert pour l'affiche), durée (min), genres, plateformes, pitch]
 // Plateformes = disponibilité indicative en France (les catalogues tournent). Chaque fiche a un lien JustWatch pour vérifier.
 
+import { EXTRA } from "./films-extra.js";
+
 export const PLATFORMS = {
   netflix:   { label: "Netflix",      color: "#e50914" },
   prime:     { label: "Prime Video",  color: "#00a8e1" },
@@ -208,7 +210,11 @@ function slug(s) {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-export const FILMS = RAW.map(([title, year, wiki, duration, genres, platforms, pitch]) => ({
+// Dédoublonnage par titre Wikipédia (le premier gagne)
+const seen = new Set();
+const ALL = [...RAW, ...EXTRA].filter((r) => (seen.has(r[2]) ? false : (seen.add(r[2]), true)));
+
+export const FILMS = ALL.map(([title, year, wiki, duration, genres, platforms, pitch]) => ({
   id: slug(`${wiki}-${year}`),
   title, year, wiki, duration, genres, platforms, pitch,
 }));

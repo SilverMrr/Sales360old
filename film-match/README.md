@@ -12,7 +12,7 @@ En ligne : https://filmmatch-silvain.netlify.app
 - L'hôte peut clore la session : votes verrouillés côté serveur.
 
 ## Stack
-- `public/` : front statique (HTML/CSS/JS vanilla), catalogue de 172 films dans `public/films.js`.
+- `public/` : front statique (HTML/CSS/JS vanilla), catalogue de 433 films dans `public/films.js` + `public/films-extra.js`.
 - `netlify/functions/api.mts` : API `/api/*`, état des sessions dans Netlify Blobs
   (chaque joueur écrit uniquement sa propre clé : pas de conflit d'écriture).
 - Images servies par Netlify Image CDN (`/.netlify/images`, AVIF/WebP).
