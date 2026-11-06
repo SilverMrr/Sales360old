@@ -186,3 +186,9 @@ input[type="text"]:focus { border-color: var(--accent); }
 @media (min-height: 800px) {
   .card h2 { font-size: 30px; }
 }
+
+/* Netlify injecte un badge fixe (≈ 64px) en bas à droite sur ce plan : on garde les boutons au-dessus */
+.actions { padding-bottom: calc(10px + max(var(--safe-b), 56px)); }
+.bottombar { padding-bottom: calc(8px + max(var(--safe-b), 56px)); }
+.scroll { padding-bottom: 80px; }
+.home-wrap { padding-bottom: calc(24px + max(var(--safe-b), 56px)); }
