@@ -14,7 +14,7 @@ const CODE_RE = /^[A-Z]{4}$/;
 const FILM_ID_RE = /^[a-z0-9-]{1,120}$/;
 
 const sessions = () => getStore({ name: "sessions", consistency: "strong" });
-const posters = () => getStore("posters");
+const posters = () => getStore("posters-v2");
 
 const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
@@ -136,33 +136,44 @@ async function endSession(req: Request, code: string) {
   return json({ ok: true });
 }
 
+async function fetchWikiPoster(title: string): Promise<{ src: string | null; definitive: boolean; raw?: unknown }> {
+  const api = new URL("https://en.wikipedia.org/w/api.php");
+  api.search = new URLSearchParams({
+    action: "query", format: "json", formatversion: "2", redirects: "1",
+    prop: "pageimages", piprop: "thumbnail", pithumbsize: "500", pilicense: "any", titles: title,
+  }).toString();
+  const r = await fetch(api, { headers: { "User-Agent": "FilmMatch/1.0 (https://filmmatch-silvain.netlify.app)", "Api-User-Agent": "FilmMatch/1.0 (https://filmmatch-silvain.netlify.app)" } });
+  const text = await r.text();
+  let data: any = null;
+  try { data = JSON.parse(text); } catch {}
+  const page = data?.query?.pages?.[0];
+  const src = page?.thumbnail?.source ?? null;
+  // "définitif" = Wikipédia a bien répondu sur la page (elle existe sans image, ou est absente)
+  const definitive = Boolean(r.ok && page && !data?.error);
+  return { src, definitive, raw: { status: r.status, body: text.slice(0, 400) } };
+}
+
 async function poster(url: URL) {
   const title = (url.searchParams.get("t") ?? "").slice(0, 200);
   if (!title) return new Response("missing t", { status: 400 });
+  if (url.searchParams.get("debug") === "1") return json(await fetchWikiPoster(title));
+
   const store = posters();
   const cached: any = await store.get(title, { type: "json" });
-  const fresh = cached && (cached.url || Date.now() - cached.at < 24 * 3600 * 1000);
+  const fresh = cached && (cached.url || Date.now() - cached.at < 6 * 3600 * 1000);
   let src: string | null = fresh ? cached.url : null;
 
   if (!fresh) {
     try {
-      const api = new URL("https://en.wikipedia.org/w/api.php");
-      api.search = new URLSearchParams({
-        action: "query", format: "json", formatversion: "2", redirects: "1",
-        prop: "pageimages", piprop: "thumbnail", pithumbsize: "500", pilicense: "any", titles: title,
-      }).toString();
-      const r = await fetch(api, { headers: { "User-Agent": "FilmMatch/1.0 (party movie picker on Netlify)" } });
-      if (r.ok) {
-        const data: any = await r.json();
-        src = data?.query?.pages?.[0]?.thumbnail?.source ?? null;
-        await store.setJSON(title, { url: src, at: Date.now() });
-      }
+      const res = await fetchWikiPoster(title);
+      src = res.src;
+      if (src || res.definitive) await store.setJSON(title, { url: src, at: Date.now() });
     } catch {
       src = null;
     }
   }
 
-  if (!src) return new Response("no poster", { status: 404, headers: { "Cache-Control": "public, max-age=3600" } });
+  if (!src) return new Response("no poster", { status: 404, headers: { "Cache-Control": "no-store" } });
   return new Response(null, {
     status: 302,
     headers: {
