@@ -434,12 +434,13 @@ function renderLobby() {
   $("#lobby-deck-info").textContent = `${S.deck.length} films à swiper${plats.length && plats.length < 7 ? ` · ${plats.join(", ")}` : ""}`;
   const f = FILM_BY_ID[S.deck[0]]; if (f) setBackdrop(backdropUrl(f) || posterUrl(f, 300));
 }
-let lastQR = "";
 function renderQR(el) {
   const url = shareUrl();
-  if (el.dataset.url === url || !window.QRCode) return;
-  el.innerHTML = ""; el.dataset.url = url; lastQR = url;
-  new window.QRCode(el, { text: url, width: 156, height: 156, colorDark: "#07070a", colorLight: "#ffffff", correctLevel: window.QRCode.CorrectLevel.M });
+  if (el.dataset.url === url || typeof window.qrcode !== "function") return;
+  const qr = window.qrcode(0, "M");
+  qr.addData(url); qr.make();
+  el.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 0, scalable: true });
+  el.dataset.url = url;
 }
 
 /* ═══════════════════════ Swipe ═══════════════════════ */

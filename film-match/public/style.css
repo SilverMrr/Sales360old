@@ -232,7 +232,8 @@ input[type="text"]:focus { border-color: rgba(255, 77, 109, .6); background: rgb
 .qr-wrap { display: flex; justify-content: center; }
 .qr { padding: 12px; background: #fff; border-radius: 16px; }
 .qr:empty { display: none; }
-.qr img, .qr canvas { display: block; width: 156px !important; height: 156px !important; }
+.qr svg { display: block; width: 156px; height: 156px; }
+.qr svg path { fill: #07070a; }
 .lobby-share { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
 .live-dot { font-size: 12px; color: var(--text-3); display: inline-flex; align-items: center; gap: 6px; }
 .live-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--like); animation: pulse 1.8s infinite; }
