@@ -456,7 +456,8 @@ function cardHTML(f) {
   return `
     ${mediaHTML(f)}
     <div class="shade"></div><div class="tint"></div><div class="glare"></div>
-    <div class="top-tags">${platsHTML(f)}${ratingHTML(f)}</div>
+    <div class="top-tags">${ratingHTML(f)}</div>
+    <button class="card-info-btn" data-details="${f.id}" aria-label="Synopsis et bande-annonce">${ICON.info}</button>
     <div class="stamp like">${ICON.heart}J'aime</div>
     <div class="stamp nope">${ICON.x}Bof</div>
     <div class="stamp super">${ICON.star}Coup de cœur</div>
@@ -465,8 +466,8 @@ function cardHTML(f) {
       <div class="genres">${f.genres.slice(0, 2).join(" · ")}</div>
       <h2>${esc(f.title)}</h2>
       <div class="meta">${f.year}<span class="dot"></span>${fmtDuration(durationOf(f))}${T(f)?.director ? `<span class="dot"></span>${esc(T(f).director)}` : ""}</div>
+      <div class="plats">${platsHTML(f)}</div>
       <p class="pitch">${esc(f.pitch)}</p>
-      <button class="more" data-details="${f.id}">${ICON.info}Synopsis & bande-annonce</button>
     </div>`;
 }
 
@@ -518,7 +519,7 @@ function attachDrag(card, film) {
   const hot = (k) => Object.entries(btn).forEach(([n, b]) => b.classList.toggle("hot", n === k));
 
   card.addEventListener("pointerdown", (e) => {
-    if (e.target.closest(".more")) return;
+    if (e.target.closest(".card-info-btn")) return;
     dragging = true; moved = false; x0 = e.clientX; y0 = e.clientY; t0 = performance.now(); dx = dy = 0;
     const r = card.getBoundingClientRect(); grabY = (e.clientY - r.top) / r.height;
     card.setPointerCapture(e.pointerId); card.classList.remove("settle");

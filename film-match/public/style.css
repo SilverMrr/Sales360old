@@ -516,7 +516,7 @@ input[type="text"]:focus { border-color: rgba(255, 77, 109, .6); background: rgb
 
 /* cadré (affiche basse définition) : nette, centrée, sur fond flouté */
 .media.framed .media-frame {
-  left: 50%; top: 9%; height: 52%; width: auto; max-width: 64%; aspect-ratio: 2 / 3; transform: translateX(-50%);
+  left: 50%; top: 6%; height: 46%; width: auto; max-width: 64%; aspect-ratio: 2 / 3; transform: translateX(-50%);
   border-radius: 14px; box-shadow: 0 30px 60px -12px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.12);
 }
 .media.framed .media-frame::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(160deg, rgba(255,255,255,.18), transparent 35%); pointer-events: none; }
@@ -537,7 +537,7 @@ input[type="text"]:focus { border-color: rgba(255, 77, 109, .6); background: rgb
 
 /* héros résultats */
 .hero .media.framed .media-frame { top: 7%; height: 56%; }
-.hero:has(.media.framed) .shade { background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(7,7,10,.85) 70%, rgba(7,7,10,.97)); }
+.hero:has(.media.framed) .shade { background: linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(7,7,10,.8) 72%, rgba(7,7,10,.97)); }
 .hero:has(.media.framed) .body { text-align: center; }
 .hero:has(.media.framed) .plats { justify-content: center; }
 .hero { aspect-ratio: 2 / 2.75; }
@@ -598,3 +598,26 @@ input[type="text"]:focus { border-color: rgba(255, 77, 109, .6); background: rgb
 /* Empêche le glisser-déposer natif des images et le menu d'appui long iOS pendant le swipe */
 .card, .card * { -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; -webkit-user-select: none; }
 .card img, .wall img, .hero img { pointer-events: none; }
+
+/* carte v3.1 : plateformes sous le titre, bouton info discret */
+.card .info { padding: 16px 20px 20px; }
+.card .info .plats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.card:has(.media.framed) .info .plats { justify-content: center; }
+.card h2 { font-size: 34px; }
+.card .pitch { margin-top: 10px; }
+.card .genres { margin-bottom: 4px; }
+.card-info-btn {
+  position: absolute; top: 14px; right: 14px; z-index: 4; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(10,10,14,.5); border: 1px solid rgba(255,255,255,.18); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  transition: transform .2s var(--spring);
+}
+.card-info-btn:active { transform: scale(.88); }
+.card-info-btn svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+.card .top-tags { right: 60px; }
+.card .shade { background: linear-gradient(180deg, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 16%, rgba(0,0,0,0) 46%, rgba(0,0,0,.75) 64%, rgba(0,0,0,.95) 100%); }
+.card .media.framed ~ .shade { background: linear-gradient(180deg, rgba(0,0,0,.2) 0%, rgba(0,0,0,0) 15%, rgba(0,0,0,0) 50%, rgba(7,7,10,.8) 60%, rgba(7,7,10,.97) 100%); }
+@media (max-height: 700px) {
+  .card .pitch { -webkit-line-clamp: 2; font-size: 13px; }
+  .card h2 { font-size: 30px; }
+  .media.framed .media-frame { height: 44%; top: 5%; }
+}
