@@ -1,8 +1,8 @@
 import { FILMS, FILM_BY_ID, PLATFORMS, GENRES } from "./films.js";
 
-// ——— Utilitaires ———
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => [...document.querySelectorAll(s)];
+/* ═══════════════════════ Utilitaires ═══════════════════════ */
+const $ = (s, root = document) => root.querySelector(s);
+const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -10,28 +10,53 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch {} },
 };
 const randomId = () => [...crypto.getRandomValues(new Uint8Array(12))].map((b) => (b % 36).toString(36)).join("");
-const fmtDuration = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
-const hue = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+const fmtDuration = (m) => `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`;
+const hash = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 const posterUrl = (f) => `/api/poster?t=${encodeURIComponent(f.wiki)}`;
-const justWatch = (f) => `https://www.justwatch.com/fr/recherche?q=${encodeURIComponent(f.title)}`;
+const q = (s) => encodeURIComponent(s);
+const LINKS = {
+  justwatch: (f) => `https://www.justwatch.com/fr/recherche?q=${q(f.title)}`,
+  trailer: (f) => `https://www.youtube.com/results?search_query=${q(`${f.title} ${f.year} bande annonce`)}`,
+  netflix: (f) => `https://www.netflix.com/search?q=${q(f.title)}`,
+  prime: (f) => `https://www.primevideo.com/search/?phrase=${q(f.title)}`,
+  apple: (f) => `https://tv.apple.com/fr/search?term=${q(f.title)}`,
+};
+const PLAT_MARK = { netflix: "N", prime: "P", disney: "D+", max: "M", apple: "tv", canal: "C+", paramount: "P+" };
+const AVATAR_COLORS = ["#ff4d6d", "#5ab8ff", "#34d399", "#ff8f5a", "#b48cff", "#f3c77a", "#ff6fcf", "#3fe0d0"];
+// Couleur stable et distincte : rang de l'id parmi les joueurs (même ordre sur tous les téléphones)
+const avatarColor = (id) => {
+  const ids = S ? [...new Set([me.id, ...(S.players || []).map((p) => p.id)])].sort() : [];
+  const i = ids.indexOf(id);
+  return AVATAR_COLORS[(i >= 0 ? i : hash(id)) % AVATAR_COLORS.length];
+};
+const vibrate = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
+const ICON = {
+  heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></svg>',
+  star: '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+  x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
+  ban: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M6 6l12 12" stroke="currentColor" stroke-width="2.6"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  tv: '<svg viewBox="0 0 24 24"><path d="M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm4 15h8v-1.5H8z"/></svg>',
+  info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+};
 
-function fallbackStyle(f) {
-  const h = hue(f.id);
-  return `background:linear-gradient(160deg,hsl(${h} 60% 30%),hsl(${(h + 60) % 360} 70% 12%))`;
+function fbStyle(f) {
+  const h = hash(f.id) % 360;
+  return `background:radial-gradient(120% 90% at 20% 0%,hsl(${h} 55% 34%),transparent 60%),linear-gradient(160deg,hsl(${h} 45% 20%),hsl(${(h + 50) % 360} 55% 8%))`;
 }
-function posterHTML(f, cls = "") {
-  return `<div class="fallback ${cls}" style="${fallbackStyle(f)}">${esc(f.title)}</div>
-          <img src="${posterUrl(f)}" alt="" loading="lazy" decoding="async" onerror="this.remove()" />`;
+function posterHTML(f, { eager = false } = {}) {
+  return `<div class="poster"><div class="fb" style="${fbStyle(f)}">${esc(f.title)}</div><img src="${posterUrl(f)}" alt="" ${eager ? "" : 'loading="lazy"'} decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"></div>`;
 }
-function platsHTML(f) {
-  return `<div class="plats">${f.platforms.map((p) => `<span class="plat" style="background:${PLATFORMS[p].color}">${PLATFORMS[p].label}</span>`).join("")}</div>`;
-}
+const platHTML = (p) => `<span class="plat"><i style="background:${PLATFORMS[p].color}"></i>${PLATFORMS[p].label}</span>`;
+const avatarHTML = (p, cls = "") => `<span class="avatar ${cls}" style="background:${avatarColor(p.id)}">${esc((p.name || "?").slice(0, 1).toUpperCase())}</span>`;
 
 let toastTimer;
-function toast(msg) {
+function toast(msg, ms = 2400) {
   const t = $("#toast");
   t.textContent = msg; t.hidden = false;
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 2200);
+  t.style.animation = "none"; void t.offsetWidth; t.style.animation = "";
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), ms);
 }
 
 async function api(path, opts = {}) {
@@ -45,66 +70,129 @@ async function api(path, opts = {}) {
   return data;
 }
 
-// ——— État ———
+/* ═══════════════════════ Fond dynamique ═══════════════════════ */
+let bdIndex = 0, bdCurrent = "";
+function setBackdrop(url) {
+  if (url === bdCurrent) return;
+  bdCurrent = url;
+  const layers = $$("#backdrop .bd");
+  const next = layers[(bdIndex + 1) % 2], prev = layers[bdIndex % 2];
+  if (!url) { layers.forEach((l) => l.classList.remove("on")); return; }
+  const img = new Image();
+  img.onload = () => {
+    if (bdCurrent !== url) return;
+    next.style.backgroundImage = `url("${url}")`;
+    next.classList.add("on"); prev.classList.remove("on"); bdIndex++;
+  };
+  img.src = url;
+}
+
+/* ═══════════════════════ Confettis ═══════════════════════ */
+function confetti() {
+  const c = $("#confetti"), ctx = c.getContext("2d");
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr; ctx.scale(dpr, dpr);
+  const colors = ["#f3c77a", "#ff4d6d", "#ff8f5a", "#5ab8ff", "#34d399", "#ffffff"];
+  const parts = Array.from({ length: 160 }, (_, i) => ({
+    x: innerWidth / 2 + (Math.random() - .5) * 60, y: innerHeight * .35,
+    vx: (Math.random() - .5) * 14, vy: -Math.random() * 15 - 4,
+    w: 5 + Math.random() * 6, h: 8 + Math.random() * 8, r: Math.random() * 6, vr: (Math.random() - .5) * .35,
+    c: colors[i % colors.length],
+  }));
+  const t0 = performance.now();
+  (function frame(t) {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (const p of parts) {
+      p.vy += .38; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+      ctx.globalAlpha = Math.max(0, 1 - (t - t0) / 3200);
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 2))); ctx.restore();
+    }
+    if (t - t0 < 3200) requestAnimationFrame(frame); else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  })(t0);
+}
+
+/* ═══════════════════════ État ═══════════════════════ */
 const me = {
   id: store.get("fm:pid") || (() => { const id = randomId(); store.set("fm:pid", id); return id; })(),
   get name() { return store.get("fm:name", "") || "Anonyme"; },
 };
-let S = null; // { code, deck, hostId, ended, players, votes, index }
-let pollTimer = null;
-let saveTimer = null;
-let currentScreen = "home";
+let S = null;
+let pollTimer = null, saveTimer = null;
+let screen = "home";
 
-function local(code) { return store.get(`fm:s:${code}`, { votes: {}, index: 0, seenMatches: [] }); }
-function saveLocal() { if (S) store.set(`fm:s:${S.code}`, { votes: S.votes, index: S.index, seenMatches: S.seenMatches }); }
-
-function show(name) {
-  currentScreen = name;
-  $$(".screen").forEach((s) => s.classList.toggle("active", s.id === `screen-${name}`));
-  clearInterval(pollTimer);
-  if (name === "swipe") pollTimer = setInterval(refresh, 4000);
-  if (name === "results") pollTimer = setInterval(refresh, 2500);
-  if (S && (name === "swipe" || name === "results")) {
-    history.replaceState(null, "", `/?s=${S.code}`);
-  }
+const local = (code) => store.get(`fm:s:${code}`, {});
+function saveLocal() {
+  if (!S) return;
+  store.set(`fm:s:${S.code}`, {
+    votes: S.votes, index: S.index, pick: S.pick, started: S.started,
+    seenMatches: S.seenMatches, celebrated: S.celebrated, seenFinal: S.seenFinal,
+  });
 }
 
-// ——— Accueil ———
+const POLL = { lobby: 2500, swipe: 4000, final: 2000, results: 2500 };
+function show(name) {
+  screen = name;
+  $$(".screen").forEach((s) => s.classList.toggle("active", s.id === `screen-${name}`));
+  clearInterval(pollTimer);
+  if (POLL[name]) pollTimer = setInterval(refresh, POLL[name]);
+  if (S && name !== "home" && name !== "create") history.replaceState(null, "", `/?s=${S.code}`);
+  if (name === "home" || name === "create") setBackdrop("");
+}
+
+/* ═══════════════════════ Accueil ═══════════════════════ */
+function buildWall() {
+  const pool = FILMS.filter((f) => f.wiki !== "Lost Bullet").sort(() => Math.random() - .5).slice(0, 30);
+  const rows = [pool.slice(0, 10), pool.slice(10, 20), pool.slice(20, 30)];
+  $("#wall").innerHTML = rows.map((r) => {
+    const tiles = r.map((f) => `<div class="wall-tile"><div class="fb" style="${fbStyle(f)}">${esc(f.title)}</div><img src="${posterUrl(f)}" alt="" decoding="async" onerror="this.remove()"></div>`).join("");
+    return `<div class="wall-row">${tiles}${tiles}</div>`;
+  }).join("");
+}
+
 function initHome() {
+  buildWall();
   $("#name-input").value = store.get("fm:name", "");
   $("#name-input").addEventListener("input", (e) => store.set("fm:name", e.target.value.trim()));
-  const params = new URLSearchParams(location.search);
-  const code = (params.get("s") || "").toUpperCase();
+  const code = (new URLSearchParams(location.search).get("s") || "").toUpperCase();
   if (code) $("#code-input").value = code;
+  renderResume();
 
-  if (!code) initResume();
-
-  $("#btn-go-create").addEventListener("click", () => {
-    if (!requireName()) return;
-    show("create");
-  });
+  $("#btn-go-create").addEventListener("click", () => { if (requireName()) { show("create"); renderCreate(); } });
   $("#btn-join").addEventListener("click", () => {
     if (!requireName()) return;
     const c = $("#code-input").value.trim().toUpperCase();
     if (!/^[A-Z]{4}$/.test(c)) return homeError("Le code fait 4 lettres.");
     join(c);
   });
+  $("#code-input").addEventListener("input", (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ""); });
   $("#code-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#btn-join").click(); });
+  $("#name-input").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
   $$("[data-back]").forEach((b) => b.addEventListener("click", () => show(b.dataset.back)));
+  $$("[data-home]").forEach((b) => b.addEventListener("click", goHome));
+}
+function goHome() { history.replaceState(null, "", "/"); show("home"); renderResume(); }
+function renderResume() {
+  const last = store.get("fm:last"), box = $("#resume-box");
+  if (!last) { box.hidden = true; return; }
+  box.innerHTML = `<span class="pulse"></span>Reprendre la session <b>${esc(last)}</b>`;
+  box.hidden = false;
+  box.onclick = () => { if (requireName()) join(last); };
 }
 function requireName() {
   const n = $("#name-input").value.trim();
-  if (!n) { homeError("Mets ton prénom pour que les autres sachent qui a liké quoi."); $("#name-input").focus(); return false; }
+  if (!n) { homeError("Ton prénom d'abord : les autres verront qui a liké quoi."); $("#name-input").focus(); return false; }
   store.set("fm:name", n); $("#home-error").hidden = true; return true;
 }
-function homeError(msg) { const e = $("#home-error"); e.textContent = msg; e.hidden = false; }
+function homeError(msg) { const e = $("#home-error"); e.textContent = msg; e.hidden = false; vibrate(30); }
 
-// ——— Création ———
-const filters = store.get("fm:filters", {
-  platforms: Object.keys(PLATFORMS), genres: [], maxDuration: 0, size: 40,
-});
-const DURATIONS = [[0, "Peu importe"], [100, "≤ 1h40"], [120, "≤ 2h"], [150, "≤ 2h30"]];
-const SIZES = [[20, "20"], [40, "40"], [60, "60"], [0, "Tous"]];
+/* ═══════════════════════ Création ═══════════════════════ */
+const filters = Object.assign(
+  { platforms: Object.keys(PLATFORMS), genres: [], maxDuration: 0, size: 30 },
+  store.get("fm:filters", {}),
+);
+const DURATIONS = [[0, "Peu importe"], [100, "1 h 40"], [120, "2 h"], [150, "2 h 30"]];
+const SIZES = [[20, "20"], [30, "30"], [50, "50"], [0, "Tous"]];
 
 function filteredFilms() {
   return FILMS.filter((f) =>
@@ -113,355 +201,590 @@ function filteredFilms() {
     (!filters.maxDuration || f.duration <= filters.maxDuration));
 }
 function renderCreate() {
-  $("#platform-chips").innerHTML = Object.entries(PLATFORMS).map(([k, p]) =>
-    `<button class="chip ${filters.platforms.includes(k) ? "on" : ""}" data-plat="${k}"><span class="dot" style="background:${p.color}"></span>${p.label}</button>`).join("");
-  $("#genre-chips").innerHTML = GENRES.map((g) =>
-    `<button class="chip ${filters.genres.includes(g) ? "on" : ""}" data-genre="${g}">${g}</button>`).join("");
-  $("#duration-chips").innerHTML = DURATIONS.map(([v, l]) =>
-    `<button class="chip ${filters.maxDuration === v ? "on" : ""}" data-dur="${v}">${l}</button>`).join("");
-  $("#size-chips").innerHTML = SIZES.map(([v, l]) =>
-    `<button class="chip ${filters.size === v ? "on" : ""}" data-size="${v}">${l}</button>`).join("");
-  const n = filteredFilms().length;
-  const used = filters.size ? Math.min(filters.size, n) : n;
-  $("#create-count").innerHTML = `<strong>${n}</strong> films correspondent · <strong>${used}</strong> à swiper`;
+  const counts = Object.fromEntries(Object.keys(PLATFORMS).map((k) => [k, FILMS.filter((f) => f.platforms.includes(k)).length]));
+  $("#platform-chips").innerHTML = Object.entries(PLATFORMS).map(([k, p]) => `
+    <button class="plat-tile ${filters.platforms.includes(k) ? "on" : ""}" data-plat="${k}" aria-pressed="${filters.platforms.includes(k)}">
+      <span class="plat-logo" style="background:${p.color}">${PLAT_MARK[k]}</span>
+      <span>${p.label}<small>${counts[k]} films</small></span>
+      <span class="check">${ICON.check}</span>
+    </button>`).join("");
+  $("#genre-chips").innerHTML = GENRES.map((g) => `<button class="chip ${filters.genres.includes(g) ? "on" : ""}" data-genre="${g}">${g}</button>`).join("");
+  $("#duration-chips").innerHTML = DURATIONS.map(([v, l]) => `<button class="seg ${filters.maxDuration === v ? "on" : ""}" data-dur="${v}">${l}</button>`).join("");
+  $("#size-chips").innerHTML = SIZES.map(([v, l]) => `<button class="seg ${filters.size === v ? "on" : ""}" data-size="${v}">${l}</button>`).join("");
+  $("#genre-clear").style.visibility = filters.genres.length ? "visible" : "hidden";
+  $("#plat-toggle-all").textContent = filters.platforms.length === Object.keys(PLATFORMS).length ? "Aucune" : "Toutes";
+  const n = filteredFilms().length, used = filters.size ? Math.min(filters.size, n) : n;
+  $("#create-count").innerHTML = n < 2
+    ? "Pas assez de films avec ces filtres"
+    : `<strong>${n}</strong> films disponibles · <strong>${used}</strong> à swiper`;
   $("#btn-create").disabled = n < 2;
   store.set("fm:filters", filters);
 }
 function initCreate() {
   $("#screen-create").addEventListener("click", (e) => {
-    const c = e.target.closest(".chip"); if (!c) return;
+    const c = e.target.closest("[data-plat],[data-genre],[data-dur],[data-size]"); if (!c) return;
     const toggle = (arr, v) => { const i = arr.indexOf(v); i >= 0 ? arr.splice(i, 1) : arr.push(v); };
     if (c.dataset.plat) toggle(filters.platforms, c.dataset.plat);
     if (c.dataset.genre) toggle(filters.genres, c.dataset.genre);
     if (c.dataset.dur) filters.maxDuration = Number(c.dataset.dur);
     if (c.dataset.size) filters.size = Number(c.dataset.size);
+    vibrate(6); renderCreate();
+  });
+  $("#plat-toggle-all").addEventListener("click", () => {
+    filters.platforms = filters.platforms.length === Object.keys(PLATFORMS).length ? [] : Object.keys(PLATFORMS);
     renderCreate();
   });
+  $("#genre-clear").addEventListener("click", () => { filters.genres = []; renderCreate(); });
   $("#btn-create").addEventListener("click", createSession);
-  renderCreate();
+}
+
+// Mélange en alternant les plateformes pour éviter les séries de films du même service
+function buildDeck() {
+  const pool = filteredFilms().sort(() => Math.random() - .5);
+  const byPlat = {};
+  for (const f of pool) (byPlat[f.platforms[0]] ||= []).push(f);
+  const queues = Object.values(byPlat).sort(() => Math.random() - .5);
+  const out = [];
+  while (queues.some((qq) => qq.length)) for (const qq of queues) if (qq.length) out.push(qq.shift().id);
+  return filters.size ? out.slice(0, filters.size) : out;
 }
 async function createSession() {
   const btn = $("#btn-create"); btn.disabled = true; $("#create-error").hidden = true;
   try {
-    const pool = filteredFilms().map((f) => f.id);
-    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-    const deck = filters.size ? pool.slice(0, filters.size) : pool;
-    const { code } = await api("session", { method: "POST", body: { deck, filters, name: me.name, playerId: me.id } });
-    await join(code, { justCreated: true });
+    const { code } = await api("session", { method: "POST", body: { deck: buildDeck(), filters, name: me.name, playerId: me.id } });
+    await join(code);
   } catch (e) {
     const el = $("#create-error"); el.textContent = e.message; el.hidden = false;
   } finally { btn.disabled = false; }
 }
 
-// ——— Rejoindre / sync ———
-async function join(code, { justCreated = false } = {}) {
+/* ═══════════════════════ Session / synchro ═══════════════════════ */
+async function join(code) {
   try {
     const data = await api(`session/${code}`);
     const l = local(code);
-    S = { ...data, votes: l.votes || {}, index: Math.min(l.index || 0, data.deck.length), seenMatches: l.seenMatches || [] };
-    // Si on a des votes côté serveur (autre onglet/appareil perdu), on les récupère
+    S = {
+      ...data,
+      votes: l.votes || {}, index: Math.min(l.index || 0, data.deck.length), pick: l.pick || null,
+      started: !!l.started, seenMatches: l.seenMatches || [], celebrated: !!l.celebrated, seenFinal: !!l.seenFinal,
+    };
     const remote = data.players.find((p) => p.id === me.id);
     if (remote && Object.keys(remote.votes).length > Object.keys(S.votes).length) {
       S.votes = remote.votes;
       S.index = S.deck.findIndex((id) => !(id in S.votes)); if (S.index < 0) S.index = S.deck.length;
+      S.started = true;
     }
+    if (remote && remote.pick && !S.pick) S.pick = remote.pick;
     store.set("fm:last", code);
     saveLocal();
-    await pushVotes();
-    $("#swipe-code").textContent = code;
-    renderPlayersBadge();
-    if (S.ended) { show("results"); renderResults(); return; }
-    show("swipe"); renderDeck();
-    if (justCreated) openShare();
+    if (!S.ended) await pushVotes();
+    route();
   } catch (e) {
-    store.del("fm:last");
-    show("home");
+    if (e.status === 404) store.del("fm:last");
+    show("home"); renderResume();
     homeError(e.status === 404 ? "Session introuvable ou expirée." : e.message);
   }
 }
 
-async function pushVotes() {
-  if (!S) return;
-  const done = S.index >= S.deck.length;
-  try {
-    await api(`session/${S.code}/player/${me.id}`, { method: "PUT", body: { name: me.name, votes: S.votes, done } });
-  } catch (e) { toast("Connexion instable, nouvel essai…"); scheduleSave(3000); }
+function route() {
+  if (S.ended) { show("results"); renderResults(); return; }
+  if (S.phase === "final") { S.seenFinal = true; saveLocal(); show("final"); renderFinal(); return; }
+  if (!S.started) { show("lobby"); renderLobby(); return; }
+  show("swipe"); renderDeck(); renderAvatars();
 }
-function scheduleSave(delay = 500) { clearTimeout(saveTimer); saveTimer = setTimeout(pushVotes, delay); }
+
+const isDone = () => S.index >= S.deck.length;
+async function pushVotes() {
+  if (!S || S.ended) return;
+  try {
+    await api(`session/${S.code}/player/${me.id}`, { method: "PUT", body: { name: me.name, votes: S.votes, done: isDone(), pick: S.pick } });
+  } catch (e) {
+    if (e.status === 409) { S.ended = true; route(); return; }
+    toast("Connexion instable, nouvel essai…"); scheduleSave(3000);
+  }
+}
+function scheduleSave(delay = 450) { clearTimeout(saveTimer); saveTimer = setTimeout(pushVotes, delay); }
 
 async function refresh() {
   if (!S) return;
   try {
     const data = await api(`session/${S.code}`);
-    S.players = data.players; S.ended = data.ended; S.hostId = data.hostId;
-    renderPlayersBadge();
-    checkMatches();
-    if (currentScreen === "results") renderResults();
-    if (S.ended && currentScreen === "swipe") { show("results"); renderResults(); toast("L'hôte a terminé la session."); }
+    const wasEnded = S.ended, wasPhase = S.phase;
+    Object.assign(S, { players: data.players, ended: data.ended, hostId: data.hostId, phase: data.phase || "swipe", finalDeck: data.finalDeck || [] });
+    if (S.ended && !wasEnded && screen !== "results") { show("results"); renderResults(); return; }
+    if (S.phase === "final" && wasPhase !== "final" && !S.ended) {
+      S.seenFinal = true; saveLocal(); $("#match-modal").hidden = true;
+      show("final"); renderFinal(); toast("La finale commence"); vibrate([40, 30, 40]); return;
+    }
+    if (screen === "lobby") renderLobby();
+    if (screen === "swipe") { renderAvatars(); checkMatches(); }
+    if (screen === "final") { renderFinal(); if (outcome().decided) { show("results"); renderResults(); } }
+    if (screen === "results") renderResults();
   } catch {}
 }
 
-// Votes du joueur courant fusionnés avec ce que le serveur connaît (pour un affichage instantané)
 function allPlayers() {
   const others = (S.players || []).filter((p) => p.id !== me.id);
-  const done = S.index >= S.deck.length;
-  return [{ id: me.id, name: me.name, votes: S.votes, done }, ...others];
+  return [{ id: me.id, name: me.name, votes: S.votes, done: isDone(), pick: S.pick }, ...others];
 }
 
+/* ═══════════════════════ Calcul du classement ═══════════════════════ */
 function ranking() {
   const players = allPlayers();
-  const rows = S.deck.map((id) => {
-    let score = 0, likers = [], nopes = 0;
+  const rows = S.deck.map((id, order) => {
+    const r = { film: FILM_BY_ID[id], id, order, score: 0, likers: [], nopes: 0, vetoers: [] };
     for (const p of players) {
       const v = p.votes[id];
-      if (v > 0) { score += v; likers.push({ name: p.name, s: v === 2 }); }
-      else if (v === -1) nopes++;
+      if (v > 0) { r.score += v; r.likers.push({ p, s: v === 2 }); }
+      else if (v === -1) r.nopes++;
+      else if (v === -2) r.vetoers.push(p);
     }
-    return { film: FILM_BY_ID[id], score, likers, nopes };
-  }).filter((r) => r.film && r.score > 0);
-  rows.sort((a, b) => b.score - a.score || b.likers.length - a.likers.length || a.nopes - b.nopes || a.film.duration - b.film.duration);
+    return r;
+  }).filter((r) => r.film && (r.score > 0 || r.vetoers.length));
+  rows.sort((a, b) =>
+    (a.vetoers.length > 0) - (b.vetoers.length > 0) || b.score - a.score || b.likers.length - a.likers.length ||
+    a.nopes - b.nopes || a.order - b.order);
   return rows;
+}
+const eligible = () => ranking().filter((r) => !r.vetoers.length && r.score > 0);
+
+function outcome() {
+  const players = allPlayers();
+  if (S.phase === "final" && S.finalDeck?.length) {
+    const tally = S.finalDeck.map((id, i) => ({ id, i, votes: players.filter((p) => p.pick === id).length }));
+    tally.sort((a, b) => b.votes - a.votes || a.i - b.i);
+    const voted = players.filter((p) => p.pick).length;
+    return { winnerId: tally[0].id, final: true, tally, voted, decided: S.ended || (players.length >= 2 && voted === players.length) };
+  }
+  const el = eligible();
+  const tie = el.length >= 2 && el[0].score === el[1].score && el[0].likers.length === el[1].likers.length;
+  const allDone = players.length >= 2 && players.every((p) => p.done);
+  return {
+    winnerId: el[0]?.id || null, final: false, row: el[0], tie: tie && allDone && !S.ended,
+    decided: S.ended || (allDone && !tie),
+  };
 }
 
 function checkMatches() {
   const players = allPlayers();
-  if (players.length < 2) return;
+  if (players.length < 2 || S.phase === "final") return;
   for (const id of S.deck) {
     if (S.seenMatches.includes(id)) continue;
     if (players.every((p) => p.votes[id] > 0)) {
       S.seenMatches.push(id); saveLocal();
       const f = FILM_BY_ID[id];
-      $("#match-film").innerHTML = `<div class="match-poster">${posterHTML(f)}</div><h3>${esc(f.title)}</h3>${platsHTML(f).replace('class="plats"', 'class="plats" style="justify-content:center;margin-top:8px"')}`;
-      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+      $("#match-film").innerHTML = `<div class="match-poster">${posterHTML(f, { eager: true })}</div><h3>${esc(f.title)}</h3>`;
+      vibrate([60, 40, 60, 40, 120]);
       $("#match-modal").hidden = false;
+      confetti();
       return;
     }
   }
 }
 
-function renderPlayersBadge() {
-  $("#players-badge").textContent = Math.max(1, (S.players || []).length);
+/* ═══════════════════════ Salle d'attente ═══════════════════════ */
+function renderLobby() {
+  $("#lobby-code").textContent = S.code;
+  renderQR($("#lobby-qr"));
+  $("#lobby-players").innerHTML = allPlayers().map((p) =>
+    `<div class="lobby-player">${avatarHTML(p)}${esc(p.name)}${p.id === me.id ? " <small>toi</small>" : ""}${p.id === S.hostId ? " <small>· hôte</small>" : ""}</div>`).join("");
+  const plats = (S.filters?.platforms || []).map((k) => PLATFORMS[k]?.label).filter(Boolean);
+  $("#lobby-deck-info").textContent = `${S.deck.length} films à swiper${plats.length && plats.length < 7 ? ` · ${plats.join(", ")}` : ""}`;
+  const f = FILM_BY_ID[S.deck[0]]; if (f) setBackdrop(posterUrl(f));
+}
+let lastQR = "";
+function renderQR(el) {
+  const url = shareUrl();
+  if (el.dataset.url === url || !window.QRCode) return;
+  el.innerHTML = ""; el.dataset.url = url; lastQR = url;
+  new window.QRCode(el, { text: url, width: 156, height: 156, colorDark: "#07070a", colorLight: "#ffffff", correctLevel: window.QRCode.CorrectLevel.M });
 }
 
-// ——— Deck ———
+/* ═══════════════════════ Swipe ═══════════════════════ */
+function renderAvatars() {
+  const ps = allPlayers().slice(0, 5);
+  const ring = (p) => {
+    const n = Object.keys(p.votes).length, pct = Math.min(1, n / S.deck.length), c = 2 * Math.PI * 14.5;
+    return `<span class="ring"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14.5" stroke="rgba(255,255,255,.12)"/><circle cx="16" cy="16" r="14.5" stroke="${avatarColor(p.id)}" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}" stroke-linecap="round"/></svg>${avatarHTML(p)}</span>`;
+  };
+  $("#swipe-avatars").innerHTML = `<span class="stack">${ps.map(ring).join("")}</span><span class="code"><small>Code</small>${S.code}</span>`;
+}
+
 function cardHTML(f) {
   return `
-    ${posterHTML(f)}
-    <div class="shade"></div>
-    <div class="stamp like">LIKE</div><div class="stamp nope">NOPE</div><div class="stamp super">SUPER</div>
+    ${posterHTML(f, { eager: true })}
+    <div class="shade"></div><div class="tint"></div>
+    <div class="top-tags">${f.platforms.map(platHTML).join("")}</div>
+    <div class="stamp like">${ICON.heart}J'aime</div>
+    <div class="stamp nope">${ICON.x}Bof</div>
+    <div class="stamp super">${ICON.star}Coup de cœur</div>
+    <div class="stamp veto">${ICON.ban}Veto</div>
     <div class="info">
       <h2>${esc(f.title)}</h2>
-      <div class="meta">${f.year} · ${fmtDuration(f.duration)}</div>
-      ${platsHTML(f)}
+      <div class="meta">${f.year}<span class="dot"></span>${fmtDuration(f.duration)}<span class="dot"></span>${f.genres.slice(0, 2).join(" · ")}</div>
       <p class="pitch">${esc(f.pitch)}</p>
-      <div class="tags">${f.genres.map((g) => `<span class="tag">${g}</span>`).join("")}</div>
+      <button class="more" data-details="${f.id}">${ICON.info}Détails</button>
     </div>`;
 }
 
 function renderDeck() {
   const deckEl = $("#deck");
   deckEl.innerHTML = "";
-  const done = S.index >= S.deck.length;
+  const done = isDone();
   $("#deck-done").hidden = !done;
   deckEl.hidden = done;
-  $(".actions").style.visibility = done ? "hidden" : "visible";
+  $$("#actions .act:not(.act-undo)").forEach((b) => (b.style.visibility = done ? "hidden" : "visible"));
+  $("#actions").style.display = done ? "none" : "";
   $("#act-undo").disabled = S.index === 0;
+  const vetoUsed = Object.values(S.votes).includes(-2);
+  $("#act-veto").disabled = vetoUsed;
+  $("#veto-count").textContent = vetoUsed ? "0" : "1";
   $("#progress-bar").style.width = `${(S.index / S.deck.length) * 100}%`;
-  if (done) { $(".actions").style.visibility = "visible"; $$(".act:not(.act-undo)").forEach((b) => (b.style.display = "none")); }
-  else $$(".act").forEach((b) => (b.style.display = ""));
+  $("#progress-text").textContent = `${Math.min(S.index + 1, S.deck.length)} / ${S.deck.length}`;
 
-  // On empile les 3 prochaines cartes, la courante au-dessus
+  if (done) {
+    setBackdrop("");
+    const others = allPlayers().filter((p) => p.id !== me.id);
+    const waiting = others.filter((p) => !p.done).length;
+    $("#done-sub").textContent = others.length === 0 ? "Invite d'autres personnes pour comparer vos goûts."
+      : waiting ? `On attend ${waiting} personne${waiting > 1 ? "s" : ""}…` : "Tout le monde a fini !";
+    return;
+  }
   for (let k = Math.min(S.index + 2, S.deck.length - 1); k >= S.index; k--) {
-    const f = FILM_BY_ID[S.deck[k]];
-    if (!f) continue;
+    const f = FILM_BY_ID[S.deck[k]]; if (!f) continue;
     const el = document.createElement("div");
-    el.className = "card";
     const depth = k - S.index;
-    if (depth > 0) el.classList.add(`behind-${depth}`);
+    el.className = `card${depth ? ` depth-${depth}` : ""}`;
     el.innerHTML = cardHTML(f);
     deckEl.appendChild(el);
-    if (depth === 0) attachDrag(el);
+    if (depth === 0) attachDrag(el, f);
   }
-  // Précharge les 2 affiches suivantes
-  for (let k = S.index + 3; k < Math.min(S.index + 5, S.deck.length); k++) {
+  const cur = FILM_BY_ID[S.deck[S.index]];
+  if (cur) setBackdrop(posterUrl(cur));
+  for (let k = S.index + 3; k < Math.min(S.index + 6, S.deck.length); k++) {
     const f = FILM_BY_ID[S.deck[k]]; if (f) new Image().src = posterUrl(f);
   }
 }
 
-function attachDrag(card) {
-  let x0 = 0, y0 = 0, dx = 0, dy = 0, t0 = 0, dragging = false;
-  const like = card.querySelector(".stamp.like"), nope = card.querySelector(".stamp.nope"), sup = card.querySelector(".stamp.super");
+function attachDrag(card, film) {
+  let x0 = 0, y0 = 0, dx = 0, dy = 0, t0 = 0, dragging = false, moved = false, grabY = 0.5;
+  const st = { like: $(".stamp.like", card), nope: $(".stamp.nope", card), super: $(".stamp.super", card) };
+  const tint = $(".tint", card);
+  const behind = () => $("#deck .card.depth-1");
+  const btn = { like: $("#act-like"), nope: $("#act-nope"), super: $("#act-super") };
+  const hot = (k) => Object.entries(btn).forEach(([n, b]) => b.classList.toggle("hot", n === k));
+
   card.addEventListener("pointerdown", (e) => {
-    dragging = true; x0 = e.clientX; y0 = e.clientY; t0 = Date.now(); dx = dy = 0;
-    card.setPointerCapture(e.pointerId); card.classList.remove("anim");
+    if (e.target.closest(".more")) return;
+    dragging = true; moved = false; x0 = e.clientX; y0 = e.clientY; t0 = performance.now(); dx = dy = 0;
+    const r = card.getBoundingClientRect(); grabY = (e.clientY - r.top) / r.height;
+    card.setPointerCapture(e.pointerId); card.classList.remove("settle");
   });
   card.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     dx = e.clientX - x0; dy = e.clientY - y0;
-    card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx / 18}deg)`;
+    if (Math.hypot(dx, dy) > 6) moved = true;
+    const rot = (dx / 16) * (grabY < .5 ? 1 : -1);
+    card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rot}deg)`;
     const up = -dy > Math.abs(dx) && -dy > 30;
-    like.style.opacity = !up ? Math.max(0, Math.min(1, dx / 100)) : 0;
-    nope.style.opacity = !up ? Math.max(0, Math.min(1, -dx / 100)) : 0;
-    sup.style.opacity = up ? Math.min(1, -dy / 120) : 0;
+    const pr = Math.min(1, Math.max(0, dx / 110)), pl = Math.min(1, Math.max(0, -dx / 110)), pu = up ? Math.min(1, -dy / 130) : 0;
+    st.like.style.opacity = up ? 0 : pr; st.nope.style.opacity = up ? 0 : pl; st.super.style.opacity = pu;
+    tint.style.opacity = Math.max(pr, pl, pu) * .9;
+    tint.style.background = up ? "var(--super)" : dx > 0 ? "var(--like)" : "var(--nope)";
+    hot(up && pu > .6 ? "super" : pr > .6 && !up ? "like" : pl > .6 && !up ? "nope" : null);
+    const b = behind();
+    if (b) { const p = Math.min(1, Math.hypot(dx, dy) / 160); b.style.transform = `translateY(${14 - 14 * p}px) scale(${.94 + .06 * p})`; }
   });
   const end = () => {
-    if (!dragging) return; dragging = false;
-    const dt = Math.max(1, Date.now() - t0);
-    const vx = dx / dt, vy = dy / dt;
-    if (-dy > 120 && -dy > Math.abs(dx) || (vy < -0.7 && -dy > 50)) return vote(2);
-    if (dx > 110 || (vx > 0.6 && dx > 40)) return vote(1);
-    if (dx < -110 || (vx < -0.6 && dx < -40)) return vote(-1);
-    card.classList.add("anim"); card.style.transform = "";
-    like.style.opacity = nope.style.opacity = sup.style.opacity = 0;
+    if (!dragging) return; dragging = false; hot(null);
+    const dt = Math.max(1, performance.now() - t0), vx = dx / dt, vy = dy / dt;
+    if (!moved && dt < 350) { openDetails(film, true); return; }
+    if ((-dy > 120 && -dy > Math.abs(dx)) || (vy < -.8 && -dy > 50 && -dy > Math.abs(dx))) return vote(2, { vx, vy });
+    if (dx > 110 || (vx > .55 && dx > 40)) return vote(1, { vx, vy });
+    if (dx < -110 || (vx < -.55 && dx < -40)) return vote(-1, { vx, vy });
+    card.classList.add("settle"); card.style.transform = "";
+    Object.values(st).forEach((s) => (s.style.opacity = 0)); tint.style.opacity = 0;
+    const b = behind(); if (b) { b.classList.add("promote"); b.style.transform = ""; }
   };
   card.addEventListener("pointerup", end);
   card.addEventListener("pointercancel", end);
 }
 
 let animating = false;
-function vote(v) {
-  if (!S || animating || S.index >= S.deck.length) return;
+function vote(v, { vx = 0 } = {}) {
+  if (!S || animating || isDone()) return;
   const card = $("#deck .card:last-child");
   const id = S.deck[S.index];
-  S.votes[id] = v; S.index++;
+  S.votes[id] = v; S.index++; S.started = true;
   saveLocal(); scheduleSave(); checkMatches();
-  if (navigator.vibrate) navigator.vibrate(v === 2 ? 30 : 12);
-  if (card) {
-    animating = true;
-    card.classList.add("anim");
-    const stamp = card.querySelector(v === 1 ? ".stamp.like" : v === -1 ? ".stamp.nope" : ".stamp.super");
-    if (stamp) stamp.style.opacity = 1;
-    const w = window.innerWidth * 1.4;
-    card.style.transform = v === 2 ? `translate(0, -${window.innerHeight}px)` : `translate(${v === 1 ? w : -w}px, 40px) rotate(${v === 1 ? 25 : -25}deg)`;
-    setTimeout(() => { animating = false; renderDeck(); if (S.index >= S.deck.length) pushVotes(); }, 260);
-  } else renderDeck();
+  vibrate(v === 2 ? [15, 30, 25] : v === -2 ? [40, 20, 40] : 10);
+  if (!card) return renderDeck();
+  animating = true;
+  const stampKey = { 1: "like", "-1": "nope", 2: "super", "-2": "veto" }[v];
+  $$(".stamp", card).forEach((s) => (s.style.opacity = 0));
+  $(`.stamp.${stampKey}`, card).style.opacity = 1;
+  card.classList.remove("settle"); card.classList.add("fly");
+  const W = innerWidth * 1.5;
+  if (v === 2) card.style.transform = `translate3d(0, ${-innerHeight}px, 0) rotate(0deg)`;
+  else if (v === -2) { card.style.transform = "translate3d(0, 0, 0) scale(.6)"; card.style.opacity = 0; }
+  else card.style.transform = `translate3d(${v === 1 ? W : -W}px, ${80 + Math.abs(vx) * 40}px, 0) rotate(${v === 1 ? 28 : -28}deg)`;
+  const b = $("#deck .card.depth-1");
+  if (b) { b.classList.add("promote"); b.style.transform = "translateY(0) scale(1)"; b.classList.remove("depth-1"); }
+  setTimeout(() => { animating = false; renderDeck(); if (isDone()) pushVotes(); }, 330);
 }
 function undo() {
   if (!S || S.index === 0 || animating) return;
   S.index--; delete S.votes[S.deck[S.index]];
-  saveLocal(); scheduleSave(); renderDeck();
+  saveLocal(); scheduleSave(); renderDeck(); vibrate(8);
+}
+let vetoArmed = 0;
+function veto() {
+  if (Object.values(S.votes).includes(-2)) return toast("Tu as déjà utilisé ton veto.");
+  if (Date.now() - vetoArmed > 2500) {
+    vetoArmed = Date.now();
+    toast("Veto = film éliminé pour tout le monde. Touche encore pour confirmer.", 2500);
+    vibrate(20); return;
+  }
+  vetoArmed = 0; vote(-2);
 }
 
 function initSwipe() {
   $("#act-like").addEventListener("click", () => vote(1));
   $("#act-nope").addEventListener("click", () => vote(-1));
   $("#act-super").addEventListener("click", () => vote(2));
+  $("#act-veto").addEventListener("click", veto);
   $("#act-undo").addEventListener("click", undo);
-  $("#btn-to-results").addEventListener("click", () => { show("results"); renderResults(); refresh(); });
-  $("#btn-done-results").addEventListener("click", () => { show("results"); renderResults(); refresh(); });
-  $("#btn-leave").addEventListener("click", () => { history.replaceState(null, "", "/"); show("home"); initResume(); });
-  $("#btn-share").addEventListener("click", openShare);
+  $("#btn-done-undo").addEventListener("click", undo);
+  const toResults = () => { show("results"); renderResults(); refresh(); };
+  $("#btn-to-results").addEventListener("click", toResults);
+  $("#btn-done-results").addEventListener("click", toResults);
+  $("#swipe-avatars").addEventListener("click", openShare);
+  $("#deck").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-details]"); if (b) openDetails(FILM_BY_ID[b.dataset.details], true);
+  });
+  $("#btn-start").addEventListener("click", () => { S.started = true; saveLocal(); show("swipe"); renderDeck(); renderAvatars(); });
   document.addEventListener("keydown", (e) => {
-    if (currentScreen !== "swipe") return;
+    if (screen !== "swipe" || !$("#details-modal").hidden || e.target.tagName === "INPUT") return;
     if (e.key === "ArrowRight") vote(1);
     if (e.key === "ArrowLeft") vote(-1);
     if (e.key === "ArrowUp") vote(2);
     if (e.key === "Backspace") undo();
   });
 }
-function initResume() {
-  const last = store.get("fm:last");
-  const box = $("#resume-box");
-  if (!last) { box.hidden = true; return; }
-  box.innerHTML = `Session en cours : <a href="#" id="resume-link">reprendre ${esc(last)}</a>`;
-  box.hidden = false;
-  $("#resume-link").onclick = (e) => { e.preventDefault(); join(last); };
+
+/* ═══════════════════════ Fiche détaillée ═══════════════════════ */
+function openDetails(f, canVote = false) {
+  const watch = f.platforms.filter((p) => LINKS[p]);
+  $("#details-body").innerHTML = `
+    <div class="d-head">
+      <div class="d-poster">${posterHTML(f, { eager: true })}</div>
+      <div>
+        <h2>${esc(f.title)}</h2>
+        <div class="meta">${f.year} · ${fmtDuration(f.duration)}</div>
+        <div class="plats">${f.platforms.map(platHTML).join("")}</div>
+      </div>
+    </div>
+    <div class="tags">${f.genres.map((g) => `<span class="tag">${g}</span>`).join("")}</div>
+    <p class="pitch">${esc(f.pitch)}</p>
+    <div class="d-actions">
+      <a class="btn btn-glass" href="${LINKS.trailer(f)}" target="_blank" rel="noopener">${ICON.play.replace("<svg", '<svg width="16" height="16" fill="currentColor"')}Bande-annonce</a>
+      <a class="btn btn-glass" href="${watch.length ? LINKS[watch[0]](f) : LINKS.justwatch(f)}" target="_blank" rel="noopener">${watch.length ? `Voir sur ${PLATFORMS[watch[0]].label}` : "Où regarder"}</a>
+    </div>
+    ${canVote && FILM_BY_ID[S?.deck?.[S.index]] === f ? `
+    <div class="d-vote">
+      <button class="btn btn-glass" data-dv="-1" style="color:var(--nope)">Bof</button>
+      <button class="btn btn-glass" data-dv="2" style="color:var(--super)">Coup de cœur</button>
+      <button class="btn btn-glass" data-dv="1" style="color:var(--like)">J'aime</button>
+    </div>` : ""}`;
+  $("#details-modal").hidden = false;
 }
 
-// ——— Résultats ———
-const COLORS = ["#ff3d6e", "#3db8ff", "#2fd47a", "#ff8a3d", "#a26bff", "#ffd23d", "#ff5ad1", "#3dffd8"];
+/* ═══════════════════════ Finale ═══════════════════════ */
+function renderFinal() {
+  const o = outcome(), players = allPlayers();
+  const rows = Object.fromEntries(ranking().map((r) => [r.id, r]));
+  const reveal = o.decided;
+  $("#final-choices").innerHTML = S.finalDeck.map((id) => {
+    const f = FILM_BY_ID[id]; if (!f) return "";
+    const r = rows[id], t = o.tally.find((x) => x.id === id);
+    return `<button class="final-choice ${S.pick === id ? "picked" : ""}" data-pick="${id}">
+      <div class="thumb">${posterHTML(f, { eager: true })}</div>
+      <div>
+        <h3>${esc(f.title)}</h3>
+        <div class="sub">${f.year} · ${fmtDuration(f.duration)} · ${f.platforms.map((p) => PLATFORMS[p].label).join(", ")}</div>
+        <div class="pts">${r ? `<span class="tag">${r.score} pt${r.score > 1 ? "s" : ""} au 1er tour</span>` : ""}</div>
+        ${reveal ? `<div class="votes">${t.votes} voix</div>` : ""}
+      </div>
+    </button>`;
+  }).join("");
+  $("#final-status").textContent = S.pick
+    ? `${o.voted}/${players.length} ont voté${o.voted < players.length ? " · tu peux encore changer d'avis" : ""}`
+    : `${o.voted}/${players.length} ont voté · fais ton choix`;
+  const f = FILM_BY_ID[S.pick || S.finalDeck[0]]; if (f) setBackdrop(posterUrl(f));
+}
+function initFinal() {
+  $("#final-choices").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pick]"); if (!b || S.ended) return;
+    S.pick = b.dataset.pick; saveLocal(); vibrate(15); renderFinal(); pushVotes().then(refresh);
+  });
+  $("#btn-final-results").addEventListener("click", () => { show("results"); renderResults(); });
+}
+
+/* ═══════════════════════ Résultats ═══════════════════════ */
 function renderResults() {
   if (!S) return;
-  const players = allPlayers();
-  const rows = ranking();
-  const allDone = players.length > 0 && players.every((p) => p.done);
-  const final = S.ended || (allDone && players.length >= 2);
+  const players = allPlayers(), rows = ranking(), o = outcome();
+  const f = o.winnerId && FILM_BY_ID[o.winnerId];
+  $("#results-title").textContent = o.decided ? "Résultat" : "Classement";
+  $("#results-live").hidden = o.decided;
+  $("#btn-back-swipe").style.visibility = S.ended ? "hidden" : "visible";
 
-  const top = rows[0];
-  if (!top) {
-    $("#winner").innerHTML = `<div class="empty">Pas encore de like. Allez swiper !</div>`;
+  if (!f) {
+    $("#winner").innerHTML = `<div class="empty"><div class="big">Pas encore de favori</div>Les likes apparaîtront ici en direct.</div>`;
+    setBackdrop("");
   } else {
-    const f = top.film;
-    const label = final ? "🍿 Le film de ce soir" : "En tête pour l'instant";
+    const row = rows.find((r) => r.id === f.id);
+    const label = o.decided ? "Le film de ce soir" : o.final ? "Finale en cours" : o.tie ? "Égalité en tête" : "En tête pour l'instant";
+    const scoreBadge = o.final
+      ? `<b>${o.tally[0].votes}</b><small>voix</small>`
+      : `<b>${row?.score ?? 0}</b><small>pts</small>`;
+    const watch = f.platforms.filter((p) => LINKS[p]);
     $("#winner").innerHTML = `
-      <div class="winner">
-        ${posterHTML(f)}
-        <div class="w-body">
-          <span class="w-label">${label}</span>
+      <div class="hero ${o.decided ? "decided" : ""}">
+        ${posterHTML(f, { eager: true })}
+        <div class="shade"></div>
+        <div class="score">${scoreBadge}</div>
+        <div class="body">
+          <span class="label">${o.decided ? "🍿 " : ""}${label}</span>
           <h2>${esc(f.title)}</h2>
-          <div class="meta">${f.year} · ${fmtDuration(f.duration)} · ${top.score} pt${top.score > 1 ? "s" : ""} · ${top.likers.length}/${players.length} like${top.likers.length > 1 ? "s" : ""}</div>
-          ${platsHTML(f)}
-          <a class="jw" href="${justWatch(f)}" target="_blank" rel="noopener">Où le regarder (JustWatch) →</a>
+          <div class="meta">${f.year} · ${fmtDuration(f.duration)} · ${row ? `${row.likers.length}/${players.length} ont liké` : ""}</div>
+          <div class="plats">${f.platforms.map(platHTML).join("")}</div>
         </div>
+      </div>
+      <div class="watch-row">
+        <a class="btn btn-glass" href="${LINKS.trailer(f)}" target="_blank" rel="noopener">${ICON.play}Bande-annonce</a>
+        <a class="btn ${o.decided ? "btn-gold" : "btn-glass"}" href="${watch.length ? LINKS[watch[0]](f) : LINKS.justwatch(f)}" target="_blank" rel="noopener">${ICON.tv}${watch.length ? PLATFORMS[watch[0]].label : "Où regarder"}</a>
       </div>`;
-    // L'image du gagnant est en flux normal : on retire le fallback si elle charge
-    const img = $("#winner img"), fb = $("#winner .fallback");
-    if (img) { img.loading = "eager"; img.onload = () => fb && fb.remove(); }
+    setBackdrop(posterUrl(f));
+    if (o.decided && !S.celebrated) { S.celebrated = true; saveLocal(); setTimeout(confetti, 300); vibrate([30, 40, 30, 40, 200]); }
   }
 
-  $("#players-list").innerHTML = players.map((p, i) => {
-    const n = Object.keys(p.votes).length;
-    const likes = Object.values(p.votes).filter((v) => v > 0).length;
-    return `<div class="player">
-      <div class="avatar" style="background:${COLORS[i % COLORS.length]}">${esc(p.name.slice(0, 1).toUpperCase())}</div>
-      <div><div class="pname">${esc(p.name)} ${p.id === me.id ? "<small>(toi)</small>" : ""}${p.id === S.hostId ? " <small>· hôte</small>" : ""}</div>
-        <div class="pbar"><div style="width:${(n / S.deck.length) * 100}%"></div></div></div>
-      <div class="pstat">${p.done ? "✓ fini" : `${n}/${S.deck.length}`} · ${likes}♥</div>
-    </div>`;
-  }).join("");
+  // Actions de l'hôte
+  const isHost = S.hostId === me.id;
+  let host = "";
+  if (isHost && !S.ended) {
+    const el = eligible();
+    if (S.phase !== "final" && el.length >= 2) {
+      const n = Math.min(3, el.length);
+      host += `<button class="btn btn-gold" id="btn-final">Lancer la finale entre les ${n} premiers</button>`;
+    }
+    host += `<button class="btn btn-glass" id="btn-end">${S.phase === "final" ? "Clore la finale maintenant" : "Terminer et garder ce film"}</button>`;
+    host += `<p class="host-note">${o.tie ? "Égalité : la finale permet de départager. " : ""}Tu es l'hôte : ces actions s'appliquent à tout le monde.</p>`;
+  } else if (o.tie) {
+    host = `<p class="host-note">Égalité en tête : l'hôte peut lancer une finale.</p>`;
+  }
+  $("#host-actions").innerHTML = host;
 
-  $("#ranking").innerHTML = rows.slice(0, 15).map((r, i) => `
-    <li class="rank-item">
-      <div class="rank-pos">${i + 1}</div>
+  $("#ranking").innerHTML = rows.slice(0, 20).map((r, i) => `
+    <li class="rank-item ${r.vetoers.length ? "vetoed" : ""}" style="animation-delay:${i * 30}ms" data-details="${r.id}">
+      <div class="rank-pos">${r.vetoers.length ? "—" : i + 1}</div>
       <div class="rank-thumb">${posterHTML(r.film)}</div>
       <div>
         <div class="rank-title">${esc(r.film.title)}</div>
         <div class="rank-sub">${r.film.year} · ${fmtDuration(r.film.duration)} · ${r.film.platforms.map((p) => PLATFORMS[p].label).join(", ")}</div>
-        <div class="rank-who">${r.likers.map((l) => `<span class="${l.s ? "s" : ""}">${l.s ? "★" : "♥"} ${esc(l.name)}</span>`).join("")}</div>
+        <div class="rank-who">
+          ${r.likers.map((l) => `<span class="who ${l.s ? "s" : ""}">${avatarHTML(l.p)}${l.s ? "★" : "♥"} ${esc(l.p.name)}</span>`).join("")}
+          ${r.vetoers.map((p) => `<span class="who v">${avatarHTML(p)}⛔ ${esc(p.name)}</span>`).join("")}
+        </div>
       </div>
       <div class="rank-score">${r.score}<small>pts</small></div>
     </li>`).join("") || `<li class="empty">Rien pour l'instant.</li>`;
 
-  $("#btn-end").hidden = !(S.hostId === me.id && !S.ended);
-  $("#btn-back-swipe").style.visibility = S.ended ? "hidden" : "visible";
+  $("#players-list").innerHTML = players.map((p) => {
+    const n = Object.keys(p.votes).length, likes = Object.values(p.votes).filter((v) => v > 0).length;
+    const status = S.phase === "final" ? (p.pick ? "a voté" : "réfléchit…") : p.done ? "a fini" : `${n}/${S.deck.length}`;
+    return `<div class="player">
+      ${avatarHTML(p, "lg")}
+      <div><div class="pname">${esc(p.name)}${p.id === me.id ? " <small>· toi</small>" : ""}${p.id === S.hostId ? " <small>· hôte</small>" : ""}</div>
+        <div class="pbar"><div style="width:${(n / S.deck.length) * 100}%"></div></div></div>
+      <div class="pstat"><b>${status}</b>${likes} like${likes > 1 ? "s" : ""}</div>
+    </div>`;
+  }).join("");
 }
 
 function initResults() {
-  $("#btn-back-swipe").addEventListener("click", () => { show("swipe"); renderDeck(); });
-  $("#btn-share-2").addEventListener("click", openShare);
-  $("#btn-end").addEventListener("click", async () => {
-    if (!confirm("Terminer la session ? Le film en tête sera retenu pour tout le monde.")) return;
-    try { await api(`session/${S.code}/end`, { method: "POST", body: { playerId: me.id } }); S.ended = true; renderResults(); }
-    catch (e) { toast(e.message); }
+  $("#btn-back-swipe").addEventListener("click", () => {
+    if (S.phase === "final") { show("final"); renderFinal(); } else { show("swipe"); renderDeck(); renderAvatars(); }
+  });
+  $("#host-actions").addEventListener("click", async (e) => {
+    if (e.target.id === "btn-final") {
+      const deck = eligible().slice(0, 3).map((r) => r.id);
+      try { await api(`session/${S.code}/final`, { method: "POST", body: { playerId: me.id, deck } }); await refresh(); }
+      catch (err) { toast(err.message); }
+    }
+    if (e.target.id === "btn-end") {
+      if (!confirm("Terminer la session pour tout le monde ? Les votes seront verrouillés.")) return;
+      try { await api(`session/${S.code}/end`, { method: "POST", body: { playerId: me.id } }); S.ended = true; renderResults(); }
+      catch (err) { toast(err.message); }
+    }
+  });
+  $("#ranking").addEventListener("click", (e) => {
+    const li = e.target.closest("[data-details]"); if (li) openDetails(FILM_BY_ID[li.dataset.details]);
+  });
+  $("#winner").addEventListener("click", (e) => {
+    if (e.target.closest("a")) return;
+    const o = outcome(); if (o.winnerId) openDetails(FILM_BY_ID[o.winnerId]);
   });
   $("#btn-new").addEventListener("click", () => { store.del("fm:last"); S = null; history.replaceState(null, "", "/"); show("create"); renderCreate(); });
 }
 
-// ——— Partage ———
-function shareUrl() { return `${location.origin}/?s=${S.code}`; }
+/* ═══════════════════════ Partage & modales ═══════════════════════ */
+const shareUrl = () => `${location.origin}/?s=${S.code}`;
 function openShare() {
   if (!S) return;
   $("#share-code").textContent = S.code;
-  const qr = $("#qr"); qr.innerHTML = "";
-  if (window.QRCode) new window.QRCode(qr, { text: shareUrl(), width: 180, height: 180, correctLevel: window.QRCode.CorrectLevel.M });
-  $("#btn-native-share").hidden = !navigator.share;
+  renderQR($("#share-qr"));
   $("#share-modal").hidden = false;
 }
+async function doShare() {
+  if (navigator.share) {
+    try { await navigator.share({ title: "FilmMatch", text: `On choisit le film de ce soir ? Rejoins ma session FilmMatch (code ${S.code})`, url: shareUrl() }); } catch {}
+  } else doCopy();
+}
+async function doCopy() {
+  try { await navigator.clipboard.writeText(shareUrl()); toast("Lien copié"); } catch { toast(shareUrl(), 4000); }
+}
 function initModals() {
-  $$(".modal").forEach((m) => {
-    m.addEventListener("click", (e) => { if (e.target === m || e.target.closest("[data-close]")) m.hidden = true; });
-  });
-  $("#btn-native-share").addEventListener("click", async () => {
-    try { await navigator.share({ title: "FilmMatch", text: `Rejoins ma session FilmMatch (code ${S.code}) pour choisir le film de ce soir`, url: shareUrl() }); } catch {}
-  });
-  $("#btn-copy").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(shareUrl()); toast("Lien copié"); } catch { toast(shareUrl()); }
+  $$(".modal").forEach((m) => m.addEventListener("click", (e) => {
+    if (e.target === m || e.target.closest("[data-close]")) m.hidden = true;
+  }));
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-share]")) doShare();
+    if (e.target.closest("[data-copy]")) doCopy();
+    if (e.target.closest("[data-open-share]")) openShare();
+    const dv = e.target.closest("[data-dv]");
+    if (dv) { $("#details-modal").hidden = true; setTimeout(() => vote(Number(dv.dataset.dv)), 200); }
   });
   $("#btn-match-results").addEventListener("click", () => { $("#match-modal").hidden = true; show("results"); renderResults(); });
+  // Glisser vers le bas pour fermer les sheets
+  $$(".sheet").forEach((sh) => {
+    let y0 = null;
+    sh.addEventListener("touchstart", (e) => { if (sh.scrollTop <= 0) y0 = e.touches[0].clientY; }, { passive: true });
+    sh.addEventListener("touchmove", (e) => {
+      if (y0 === null) return; const d = e.touches[0].clientY - y0;
+      if (d > 0) sh.style.transform = `translateY(${d}px)`;
+    }, { passive: true });
+    sh.addEventListener("touchend", (e) => {
+      if (y0 === null) return; const d = e.changedTouches[0].clientY - y0; y0 = null;
+      sh.style.transition = "transform .3s var(--ease)";
+      if (d > 110) { sh.closest(".modal").hidden = true; }
+      sh.style.transform = ""; setTimeout(() => (sh.style.transition = ""), 300);
+    });
+  });
 }
 
-// ——— Boot ———
-initHome(); initCreate(); initSwipe(); initResults(); initModals();
+/* ═══════════════════════ Démarrage ═══════════════════════ */
+initHome(); initCreate(); initSwipe(); initFinal(); initResults(); initModals();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 const autoCode = (new URLSearchParams(location.search).get("s") || "").toUpperCase();
-if (/^[A-Z]{4}$/.test(autoCode) && store.get("fm:name") && store.get(`fm:s:${autoCode}`)) join(autoCode);
+if (/^[A-Z]{4}$/.test(autoCode) && store.get("fm:name")) join(autoCode);

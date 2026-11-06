@@ -2,156 +2,235 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <meta name="theme-color" content="#0d0d12" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07070a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FilmMatch" />
   <title>FilmMatch</title>
-  <meta name="description" content="Swipez des films à plusieurs, chacun sur son téléphone. Le film le plus liké gagne." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>" />
+  <meta name="description" content="Choisissez le film de ce soir à plusieurs : chacun swipe sur son téléphone, le film le plus liké gagne." />
+  <meta property="og:title" content="FilmMatch — le film de ce soir, à plusieurs" />
+  <meta property="og:description" content="Chacun swipe sur son téléphone. Le film le plus liké gagne." />
+  <meta property="og:image" content="/icons/og.png" />
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
+  <div id="backdrop" aria-hidden="true"><div class="bd"></div><div class="bd"></div></div>
+  <div class="grain" aria-hidden="true"></div>
+
   <div id="app">
 
-    <!-- Accueil -->
+    <!-- ——— Accueil ——— -->
     <section id="screen-home" class="screen active">
-      <div class="home-wrap">
+      <div class="wall" id="wall" aria-hidden="true"></div>
+      <div class="home-sheet">
         <div class="brand">
-          <div class="brand-logo">🎬</div>
-          <h1>Film<span>Match</span></h1>
-          <p class="tagline">Chacun swipe sur son tel. Le film le plus liké, on le regarde.</p>
+          <div class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><rect x="6" y="9" width="24" height="32" rx="5" fill="currentColor" opacity=".35" transform="rotate(-10 18 25)"/><rect x="16" y="7" width="24" height="32" rx="5" fill="currentColor"/><path d="M28 18.5c-1.6-2.4-5.6-1.6-5.6 1.6 0 2.7 3.3 4.8 5.6 6.6 2.3-1.8 5.6-3.9 5.6-6.6 0-3.2-4-4-5.6-1.6z" fill="#07070a"/></svg>
+          </div>
+          <h1>Film<em>Match</em></h1>
+          <p class="tagline">Chacun swipe sur son téléphone.<br />Le film qui fait l'unanimité, on le regarde.</p>
         </div>
 
         <label class="field">
-          <span>Ton prénom</span>
-          <input id="name-input" type="text" maxlength="24" autocomplete="given-name" placeholder="Ex. Silvain" />
+          <span class="field-label">Ton prénom</span>
+          <input id="name-input" type="text" maxlength="24" autocomplete="given-name" placeholder="Ex. Silvain" enterkeyhint="done" />
         </label>
 
-        <button id="btn-go-create" class="btn btn-primary btn-lg">Créer une session</button>
+        <button id="btn-go-create" class="btn btn-primary btn-lg">
+          <span>Créer une session</span>
+        </button>
 
-        <div class="divider"><span>ou rejoindre</span></div>
+        <div class="divider"><span>ou rejoindre avec un code</span></div>
 
         <div class="join-row">
-          <input id="code-input" type="text" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="CODE" />
-          <button id="btn-join" class="btn btn-secondary">Rejoindre</button>
+          <input id="code-input" type="text" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABCD" inputmode="text" enterkeyhint="go" aria-label="Code de session" />
+          <button id="btn-join" class="btn btn-glass">Rejoindre</button>
         </div>
-        <p id="home-error" class="error" hidden></p>
-
-        <p id="resume-box" class="resume" hidden></p>
+        <p id="home-error" class="error" role="alert" hidden></p>
+        <button id="resume-box" class="resume" hidden></button>
       </div>
     </section>
 
-    <!-- Création -->
+    <!-- ——— Création ——— -->
     <section id="screen-create" class="screen">
       <header class="topbar">
-        <button class="icon-btn" data-back="home" aria-label="Retour">←</button>
+        <button class="icon-btn" data-back="home" aria-label="Retour"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
         <h2>Nouvelle session</h2>
         <span></span>
       </header>
       <div class="scroll">
-        <div class="block">
-          <h3>Plateformes</h3>
-          <p class="hint">Décoche celles que vous n'avez pas.</p>
-          <div id="platform-chips" class="chips"></div>
-        </div>
-        <div class="block">
-          <h3>Genres</h3>
-          <p class="hint">Aucun sélectionné = tous les genres.</p>
+        <section class="block">
+          <div class="block-head"><h3>Vos abonnements</h3><button class="link" id="plat-toggle-all">Tout</button></div>
+          <div id="platform-chips" class="plat-grid"></div>
+        </section>
+        <section class="block">
+          <div class="block-head"><h3>Envie de…</h3><button class="link" id="genre-clear">Tous les genres</button></div>
           <div id="genre-chips" class="chips"></div>
-        </div>
-        <div class="block">
-          <h3>Durée max</h3>
-          <div id="duration-chips" class="chips"></div>
-        </div>
-        <div class="block">
+        </section>
+        <section class="block">
+          <h3>Durée maximum</h3>
+          <div id="duration-chips" class="segmented"></div>
+        </section>
+        <section class="block">
           <h3>Nombre de films à swiper</h3>
-          <div id="size-chips" class="chips"></div>
-        </div>
+          <div id="size-chips" class="segmented"></div>
+          <p class="hint">20 films ≈ 2 minutes de swipe.</p>
+        </section>
+        <section class="block rules">
+          <h3>Les règles</h3>
+          <ul>
+            <li><b class="c-like">♥</b> J'aime : 1 point</li>
+            <li><b class="c-super">★</b> Coup de cœur : 2 points</li>
+            <li><b class="c-nope">✕</b> Bof : 0 point</li>
+            <li><b class="c-veto">⛔</b> Veto : 1 par personne, élimine le film</li>
+          </ul>
+        </section>
       </div>
       <footer class="bottombar">
         <p id="create-count" class="count"></p>
-        <button id="btn-create" class="btn btn-primary btn-lg">Lancer la session</button>
-        <p id="create-error" class="error" hidden></p>
+        <button id="btn-create" class="btn btn-primary btn-lg">Créer la session</button>
+        <p id="create-error" class="error" role="alert" hidden></p>
       </footer>
     </section>
 
-    <!-- Swipe -->
-    <section id="screen-swipe" class="screen">
+    <!-- ——— Salle d'attente ——— -->
+    <section id="screen-lobby" class="screen">
       <header class="topbar">
-        <button class="icon-btn" id="btn-leave" aria-label="Accueil">⌂</button>
-        <button class="code-pill" id="btn-share" aria-label="Inviter">
-          <span class="code-label">Code</span> <strong id="swipe-code">····</strong> <span class="share-ico">↗</span>
-        </button>
-        <button class="icon-btn" id="btn-to-results" aria-label="Classement">🏆<span id="players-badge" class="badge">1</span></button>
+        <button class="icon-btn" data-home aria-label="Accueil"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2>Salle d'attente</h2>
+        <span></span>
       </header>
-      <div class="progress"><div id="progress-bar"></div></div>
+      <div class="scroll lobby">
+        <div class="lobby-card glass">
+          <p class="eyebrow">Code de la session</p>
+          <div class="lobby-code" id="lobby-code">····</div>
+          <div class="qr-wrap"><div id="lobby-qr" class="qr"></div></div>
+          <div class="lobby-share">
+            <button class="btn btn-glass btn-sm" data-share>Envoyer le lien</button>
+            <button class="btn btn-glass btn-sm" data-copy>Copier</button>
+          </div>
+        </div>
+        <div class="block">
+          <div class="block-head"><h3>Dans la salle</h3><span class="live-dot">en direct</span></div>
+          <div id="lobby-players" class="lobby-players"></div>
+        </div>
+        <p class="hint center" id="lobby-deck-info"></p>
+      </div>
+      <footer class="bottombar">
+        <button id="btn-start" class="btn btn-primary btn-lg">Commencer à swiper</button>
+        <p class="hint center">Pas besoin d'attendre tout le monde : chacun avance à son rythme.</p>
+      </footer>
+    </section>
+
+    <!-- ——— Swipe ——— -->
+    <section id="screen-swipe" class="screen">
+      <header class="topbar swipe-top">
+        <button class="icon-btn" data-home aria-label="Accueil"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+        <button class="avatars" id="swipe-avatars" aria-label="Joueurs et code"></button>
+        <button class="icon-btn" id="btn-to-results" aria-label="Classement"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg></button>
+      </header>
+      <div class="progress-row">
+        <div class="progress"><div id="progress-bar"></div></div>
+        <span id="progress-text" class="progress-text"></span>
+      </div>
       <div id="deck" class="deck"></div>
       <div id="deck-done" class="deck-done" hidden>
-        <div class="big-emoji">🍿</div>
-        <h2>Tu as tout swipé</h2>
-        <p>On attend les autres…</p>
+        <div class="done-ring"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <h2>C'est tout pour toi</h2>
+        <p id="done-sub">On attend les autres…</p>
         <button class="btn btn-primary" id="btn-done-results">Voir le classement</button>
+        <button class="btn btn-ghost" id="btn-done-undo">Revenir au dernier film</button>
       </div>
-      <nav class="actions">
-        <button class="act act-undo" id="act-undo" aria-label="Annuler">↺</button>
-        <button class="act act-nope" id="act-nope" aria-label="Non">✕</button>
-        <button class="act act-super" id="act-super" aria-label="Super like (compte double)">★</button>
-        <button class="act act-like" id="act-like" aria-label="J'aime">♥</button>
+      <nav class="actions" id="actions" aria-label="Voter">
+        <button class="act act-sm act-undo" id="act-undo" aria-label="Annuler le dernier vote"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+        <button class="act act-lg act-nope" id="act-nope" aria-label="Bof"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <button class="act act-md act-super" id="act-super" aria-label="Coup de cœur, 2 points"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></button>
+        <button class="act act-lg act-like" id="act-like" aria-label="J'aime"><svg viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></svg></button>
+        <button class="act act-sm act-veto" id="act-veto" aria-label="Veto, une fois par personne"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg><span class="veto-count" id="veto-count">1</span></button>
       </nav>
     </section>
 
-    <!-- Résultats -->
+    <!-- ——— Finale ——— -->
+    <section id="screen-final" class="screen">
+      <header class="topbar">
+        <button class="icon-btn" data-home aria-label="Accueil"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+        <h2>La finale</h2>
+        <button class="icon-btn" id="btn-final-results" aria-label="Classement"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg></button>
+      </header>
+      <div class="scroll">
+        <p class="final-intro">Un seul choix chacun. Le film avec le plus de voix l'emporte.</p>
+        <div id="final-choices" class="final-choices"></div>
+        <p id="final-status" class="hint center"></p>
+      </div>
+    </section>
+
+    <!-- ——— Résultats ——— -->
     <section id="screen-results" class="screen">
       <header class="topbar">
-        <button class="icon-btn" id="btn-back-swipe" aria-label="Retour au swipe">←</button>
-        <h2>Classement</h2>
-        <button class="icon-btn" id="btn-share-2" aria-label="Inviter">↗</button>
+        <button class="icon-btn" id="btn-back-swipe" aria-label="Retour"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2 id="results-title">Classement</h2>
+        <button class="icon-btn" data-open-share aria-label="Inviter"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
       </header>
       <div class="scroll">
         <div id="winner"></div>
-        <div class="block">
-          <h3>Joueurs</h3>
-          <div id="players-list" class="players"></div>
-        </div>
-        <div class="block">
-          <h3>Top des films</h3>
+        <div id="host-actions" class="host-actions"></div>
+        <section class="block">
+          <div class="block-head"><h3>Le classement</h3><span class="live-dot" id="results-live">en direct</span></div>
           <ol id="ranking" class="ranking"></ol>
-        </div>
+        </section>
+        <section class="block">
+          <h3>Les joueurs</h3>
+          <div id="players-list" class="players"></div>
+        </section>
         <div class="block end-actions">
-          <button id="btn-end" class="btn btn-secondary" hidden>Terminer la session pour tout le monde</button>
-          <button id="btn-new" class="btn btn-ghost">Nouvelle session</button>
+          <button id="btn-new" class="btn btn-glass">Nouvelle session</button>
         </div>
-        <p class="disclaimer">Plateformes indicatives pour la France : les catalogues changent. Vérifie via le lien JustWatch du film.</p>
+        <p class="disclaimer">Plateformes indicatives pour la France : les catalogues changent chaque mois. Vérifie sur JustWatch.</p>
       </div>
     </section>
   </div>
 
-  <!-- Modale partage -->
+  <!-- Partage -->
   <div id="share-modal" class="modal" hidden>
-    <div class="modal-card">
-      <button class="modal-close" data-close aria-label="Fermer">✕</button>
-      <p class="hint">Code de la session</p>
+    <div class="sheet" role="dialog" aria-label="Inviter">
+      <div class="sheet-grab"></div>
+      <p class="eyebrow">Invite tes potes</p>
       <div id="share-code" class="share-code">····</div>
-      <div id="qr" class="qr"></div>
-      <button id="btn-native-share" class="btn btn-primary">Envoyer le lien</button>
-      <button id="btn-copy" class="btn btn-ghost">Copier le lien</button>
+      <div class="qr-wrap"><div id="share-qr" class="qr"></div></div>
+      <button class="btn btn-primary" data-share>Envoyer le lien</button>
+      <button class="btn btn-glass" data-copy>Copier le lien</button>
     </div>
   </div>
 
-  <!-- Modale match -->
+  <!-- Détails film -->
+  <div id="details-modal" class="modal" hidden>
+    <div class="sheet details" role="dialog" aria-label="Détails du film">
+      <div class="sheet-grab"></div>
+      <div id="details-body"></div>
+    </div>
+  </div>
+
+  <!-- Match -->
   <div id="match-modal" class="modal match" hidden>
-    <div class="modal-card">
-      <h2 class="match-title">C'est un match&nbsp;!</h2>
-      <p class="hint">Tout le monde a liké</p>
+    <div class="match-card" role="dialog" aria-label="Match">
+      <p class="eyebrow">Tout le monde a liké</p>
+      <h2 class="match-title">C'est un <em>match</em></h2>
       <div id="match-film"></div>
       <button id="btn-match-results" class="btn btn-primary">Voir le classement</button>
       <button class="btn btn-ghost" data-close>Continuer à swiper</button>
     </div>
   </div>
 
-  <div id="toast" class="toast" hidden></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script type="module" src="/app.js"></script>

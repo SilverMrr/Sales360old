@@ -81,6 +81,8 @@ async function createSession(req: Request) {
       hostId: playerId,
       deck,
       filters: typeof body.filters === "object" && body.filters ? body.filters : {},
+      phase: "swipe",
+      finalDeck: [],
       ended: false,
     };
     await store.setJSON(`${code}/meta`, meta);
@@ -90,7 +92,7 @@ async function createSession(req: Request) {
       await Promise.all(blobs.map((b) => store.delete(b.key)));
     }
     await store.setJSON(`${code}/p/${playerId}`, {
-      name: cleanName(body.name), votes: {}, done: false, updatedAt: Date.now(),
+      name: cleanName(body.name), votes: {}, done: false, pick: null, updatedAt: Date.now(),
     });
     return json({ code });
   }
@@ -108,21 +110,47 @@ async function upsertPlayer(req: Request, code: string, playerId: string) {
   if (!ID_RE.test(playerId)) return err("playerId invalide.");
   const meta = await getMeta(code);
   if (!meta) return err("Session introuvable ou expirée.", 404);
+  if (meta.ended) return err("La session est terminée : les votes sont verrouillés.", 409);
   const body = await readBody(req);
-  const deckSet = new Set<string>(meta.deck);
   const votes: Record<string, number> = {};
   if (body.votes && typeof body.votes === "object") {
-    for (const [k, v] of Object.entries(body.votes)) {
-      if (deckSet.has(k) && (v === 1 || v === 2 || v === -1)) votes[k] = v as number;
+    let vetoUsed = false;
+    // Parcours dans l'ordre du deck pour un résultat déterministe (1 seul veto conservé)
+    for (const id of meta.deck as string[]) {
+      const v = body.votes[id];
+      if (v === 1 || v === 2 || v === -1) votes[id] = v;
+      else if (v === -2) {
+        if (vetoUsed) votes[id] = -1;
+        else { votes[id] = -2; vetoUsed = true; }
+      }
     }
   }
+  const finalDeck: string[] = Array.isArray(meta.finalDeck) ? meta.finalDeck : [];
+  const pick = typeof body.pick === "string" && finalDeck.includes(body.pick) ? body.pick : null;
   const player = {
     name: cleanName(body.name),
     votes,
     done: Boolean(body.done),
+    pick,
     updatedAt: Date.now(),
   };
   await sessions().setJSON(`${code}/p/${playerId}`, player);
+  return json({ ok: true });
+}
+
+async function startFinal(req: Request, code: string) {
+  const meta = await getMeta(code);
+  if (!meta) return err("Session introuvable ou expirée.", 404);
+  if (meta.ended) return err("La session est déjà terminée.", 409);
+  const body = await readBody(req);
+  if (body.playerId !== meta.hostId) return err("Seul l'hôte peut lancer la finale.", 403);
+  const deckSet = new Set<string>(meta.deck);
+  const finalDeck = Array.isArray(body.deck) ? [...new Set<string>(body.deck)].filter((id) => deckSet.has(id)) : [];
+  if (finalDeck.length < 2 || finalDeck.length > 5) return err("La finale se joue entre 2 et 5 films.");
+  meta.phase = "final";
+  meta.finalDeck = finalDeck;
+  meta.finalAt = Date.now();
+  await sessions().setJSON(`${code}/meta`, meta);
   return json({ ok: true });
 }
 
@@ -132,6 +160,7 @@ async function endSession(req: Request, code: string) {
   const body = await readBody(req);
   if (body.playerId !== meta.hostId) return err("Seul l'hôte peut terminer la session.", 403);
   meta.ended = true;
+  meta.endedAt = Date.now();
   await sessions().setJSON(`${code}/meta`, meta);
   return json({ ok: true });
 }
@@ -198,6 +227,7 @@ export default async (req: Request, _context: Context) => {
       if (parts.length === 2 && req.method === "GET") return await getSession(code);
       if (parts.length === 4 && parts[2] === "player" && req.method === "PUT") return await upsertPlayer(req, code, parts[3]);
       if (parts.length === 3 && parts[2] === "end" && req.method === "POST") return await endSession(req, code);
+      if (parts.length === 3 && parts[2] === "final" && req.method === "POST") return await startFinal(req, code);
     }
     return err("Route inconnue.", 404);
   } catch (e) {
