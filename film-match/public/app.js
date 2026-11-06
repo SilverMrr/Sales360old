@@ -12,7 +12,35 @@ const store = {
 const randomId = () => [...crypto.getRandomValues(new Uint8Array(12))].map((b) => (b % 36).toString(36)).join("");
 const fmtDuration = (m) => `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`;
 const hash = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
-const posterUrl = (f) => `/api/poster?t=${encodeURIComponent(f.wiki)}`;
+/* ——— Données enrichies (TMDB si configuré côté serveur) ——— */
+let CAT = { enabled: false, films: {} };
+const T = (f) => (CAT.films[f.id]?.found ? CAT.films[f.id] : null);
+const cdn = (u, w) => `/.netlify/images?url=${encodeURIComponent(u)}&w=${w}&q=82`;
+const posterUrl = (f, w = 500) => (T(f)?.poster ? cdn(T(f).poster, w) : `/api/poster?t=${encodeURIComponent(f.wiki)}&w=${w}`);
+const backdropUrl = (f) => (T(f)?.backdrop ? cdn(T(f).backdrop, 1280) : null);
+const hires = (f) => Boolean(T(f)?.poster);
+const platformsOf = (f) => (T(f)?.providers?.length ? T(f).providers : f.platforms);
+const verified = (f) => Boolean(T(f)?.providers?.length);
+const durationOf = (f) => T(f)?.runtime || f.duration;
+const synopsisOf = (f) => T(f)?.overview || f.pitch;
+async function loadCatalog(attempt = 0) {
+  try {
+    const r = await fetch("/api/catalog");
+    const data = await r.json();
+    if (!data.enabled) return;
+    CAT = data;
+    document.documentElement.classList.add("tmdb");
+    if (screen === "create") renderCreate();
+    if (!data.complete && attempt < 4) setTimeout(() => loadCatalog(attempt + 1), 1500);
+  } catch {}
+}
+// Appelé par les <img> d'affiche : passe la carte en plein cadre si l'image est assez nette
+window.fmArt = (img) => {
+  img.classList.add("ok");
+  const host = img.closest("[data-media]");
+  if (host && img.naturalWidth >= 560) host.classList.replace("framed", "full");
+};
+window.fmNoArt = (img) => { const p = img.closest(".poster,[data-media]"); if (p) p.classList.add("noimg"); img.remove(); };
 const q = (s) => encodeURIComponent(s);
 const LINKS = {
   justwatch: (f) => `https://www.justwatch.com/fr/recherche?q=${q(f.title)}`,
@@ -45,10 +73,24 @@ function fbStyle(f) {
   const h = hash(f.id) % 360;
   return `background:radial-gradient(120% 90% at 20% 0%,hsl(${h} 55% 34%),transparent 60%),linear-gradient(160deg,hsl(${h} 45% 20%),hsl(${(h + 50) % 360} 55% 8%))`;
 }
-function posterHTML(f, { eager = false } = {}) {
-  return `<div class="poster"><div class="fb" style="${fbStyle(f)}">${esc(f.title)}</div><img src="${posterUrl(f)}" alt="" ${eager ? "" : 'loading="lazy"'} decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"></div>`;
+// Vignette simple (listes, finale…)
+function posterHTML(f, { eager = false, w = 300 } = {}) {
+  return `<div class="poster"><div class="fb" style="${fbStyle(f)}">${esc(f.title)}</div><img src="${posterUrl(f, w)}" alt="" ${eager ? "" : 'loading="lazy"'} decoding="async" onload="this.classList.add('ok')" onerror="fmNoArt(this)"></div>`;
+}
+// Média principal (carte, héros) : plein cadre si HD, sinon affiche cadrée sur fond flouté
+function mediaHTML(f, w = 780) {
+  const src = posterUrl(f, w);
+  return `<div class="media ${hires(f) ? "full" : "framed"}" data-media>
+    <img class="media-bg" src="${posterUrl(f, 200)}" alt="" decoding="async" onerror="this.remove()">
+    <div class="media-frame">
+      <div class="fb" style="${fbStyle(f)}">${esc(f.title)}</div>
+      <img class="media-art" src="${src}" alt="" decoding="async" onload="fmArt(this)" onerror="fmNoArt(this)">
+    </div>
+  </div>`;
 }
 const platHTML = (p) => `<span class="plat"><i style="background:${PLATFORMS[p].color}"></i>${PLATFORMS[p].label}</span>`;
+const platsHTML = (f) => platformsOf(f).map(platHTML).join("");
+const ratingHTML = (f) => (T(f)?.rating ? `<span class="rating">${ICON.star}${String(T(f).rating).replace(".", ",")}</span>` : "");
 const avatarHTML = (p, cls = "") => `<span class="avatar ${cls}" style="background:${avatarColor(p.id)}">${esc((p.name || "?").slice(0, 1).toUpperCase())}</span>`;
 
 let toastTimer;
@@ -145,7 +187,7 @@ function buildWall() {
   const pool = FILMS.filter((f) => f.wiki !== "Lost Bullet").sort(() => Math.random() - .5).slice(0, 30);
   const rows = [pool.slice(0, 10), pool.slice(10, 20), pool.slice(20, 30)];
   $("#wall").innerHTML = rows.map((r) => {
-    const tiles = r.map((f) => `<div class="wall-tile"><div class="fb" style="${fbStyle(f)}">${esc(f.title)}</div><img src="${posterUrl(f)}" alt="" decoding="async" onerror="this.remove()"></div>`).join("");
+    const tiles = r.map((f) => `<div class="wall-tile"><div class="fb" style="${fbStyle(f)}">${esc(f.title)}</div><img src="${posterUrl(f, 240)}" alt="" decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"></div>`).join("");
     return `<div class="wall-row">${tiles}${tiles}</div>`;
   }).join("");
 }
@@ -196,12 +238,12 @@ const SIZES = [[20, "20"], [30, "30"], [50, "50"], [0, "Tous"]];
 
 function filteredFilms() {
   return FILMS.filter((f) =>
-    f.platforms.some((p) => filters.platforms.includes(p)) &&
+    platformsOf(f).some((p) => filters.platforms.includes(p)) &&
     (filters.genres.length === 0 || f.genres.some((g) => filters.genres.includes(g))) &&
-    (!filters.maxDuration || f.duration <= filters.maxDuration));
+    (!filters.maxDuration || durationOf(f) <= filters.maxDuration));
 }
 function renderCreate() {
-  const counts = Object.fromEntries(Object.keys(PLATFORMS).map((k) => [k, FILMS.filter((f) => f.platforms.includes(k)).length]));
+  const counts = Object.fromEntries(Object.keys(PLATFORMS).map((k) => [k, FILMS.filter((f) => platformsOf(f).includes(k)).length]));
   $("#platform-chips").innerHTML = Object.entries(PLATFORMS).map(([k, p]) => `
     <button class="plat-tile ${filters.platforms.includes(k) ? "on" : ""}" data-plat="${k}" aria-pressed="${filters.platforms.includes(k)}">
       <span class="plat-logo" style="background:${p.color}">${PLAT_MARK[k]}</span>
@@ -242,7 +284,7 @@ function initCreate() {
 function buildDeck() {
   const pool = filteredFilms().sort(() => Math.random() - .5);
   const byPlat = {};
-  for (const f of pool) (byPlat[f.platforms[0]] ||= []).push(f);
+  for (const f of pool) (byPlat[platformsOf(f)[0]] ||= []).push(f);
   const queues = Object.values(byPlat).sort(() => Math.random() - .5);
   const out = [];
   while (queues.some((qq) => qq.length)) for (const qq of queues) if (qq.length) out.push(qq.shift().id);
@@ -373,7 +415,7 @@ function checkMatches() {
     if (players.every((p) => p.votes[id] > 0)) {
       S.seenMatches.push(id); saveLocal();
       const f = FILM_BY_ID[id];
-      $("#match-film").innerHTML = `<div class="match-poster">${posterHTML(f, { eager: true })}</div><h3>${esc(f.title)}</h3>`;
+      $("#match-film").innerHTML = `<div class="match-poster">${posterHTML(f, { eager: true, w: 500 })}</div><h3>${esc(f.title)}</h3>`;
       vibrate([60, 40, 60, 40, 120]);
       $("#match-modal").hidden = false;
       confetti();
@@ -390,7 +432,7 @@ function renderLobby() {
     `<div class="lobby-player">${avatarHTML(p)}${esc(p.name)}${p.id === me.id ? " <small>toi</small>" : ""}${p.id === S.hostId ? " <small>· hôte</small>" : ""}</div>`).join("");
   const plats = (S.filters?.platforms || []).map((k) => PLATFORMS[k]?.label).filter(Boolean);
   $("#lobby-deck-info").textContent = `${S.deck.length} films à swiper${plats.length && plats.length < 7 ? ` · ${plats.join(", ")}` : ""}`;
-  const f = FILM_BY_ID[S.deck[0]]; if (f) setBackdrop(posterUrl(f));
+  const f = FILM_BY_ID[S.deck[0]]; if (f) setBackdrop(backdropUrl(f) || posterUrl(f, 300));
 }
 let lastQR = "";
 function renderQR(el) {
@@ -412,18 +454,19 @@ function renderAvatars() {
 
 function cardHTML(f) {
   return `
-    ${posterHTML(f, { eager: true })}
-    <div class="shade"></div><div class="tint"></div>
-    <div class="top-tags">${f.platforms.map(platHTML).join("")}</div>
+    ${mediaHTML(f)}
+    <div class="shade"></div><div class="tint"></div><div class="glare"></div>
+    <div class="top-tags">${platsHTML(f)}${ratingHTML(f)}</div>
     <div class="stamp like">${ICON.heart}J'aime</div>
     <div class="stamp nope">${ICON.x}Bof</div>
     <div class="stamp super">${ICON.star}Coup de cœur</div>
     <div class="stamp veto">${ICON.ban}Veto</div>
     <div class="info">
+      <div class="genres">${f.genres.slice(0, 2).join(" · ")}</div>
       <h2>${esc(f.title)}</h2>
-      <div class="meta">${f.year}<span class="dot"></span>${fmtDuration(f.duration)}<span class="dot"></span>${f.genres.slice(0, 2).join(" · ")}</div>
+      <div class="meta">${f.year}<span class="dot"></span>${fmtDuration(durationOf(f))}${T(f)?.director ? `<span class="dot"></span>${esc(T(f).director)}` : ""}</div>
       <p class="pitch">${esc(f.pitch)}</p>
-      <button class="more" data-details="${f.id}">${ICON.info}Détails</button>
+      <button class="more" data-details="${f.id}">${ICON.info}Synopsis & bande-annonce</button>
     </div>`;
 }
 
@@ -460,9 +503,9 @@ function renderDeck() {
     if (depth === 0) attachDrag(el, f);
   }
   const cur = FILM_BY_ID[S.deck[S.index]];
-  if (cur) setBackdrop(posterUrl(cur));
+  if (cur) setBackdrop(backdropUrl(cur) || posterUrl(cur, 300));
   for (let k = S.index + 3; k < Math.min(S.index + 6, S.deck.length); k++) {
-    const f = FILM_BY_ID[S.deck[k]]; if (f) new Image().src = posterUrl(f);
+    const f = FILM_BY_ID[S.deck[k]]; if (f) { new Image().src = posterUrl(f, 780); new Image().src = posterUrl(f, 200); }
   }
 }
 
@@ -486,6 +529,8 @@ function attachDrag(card, film) {
     if (Math.hypot(dx, dy) > 6) moved = true;
     const rot = (dx / 16) * (grabY < .5 ? 1 : -1);
     card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rot}deg)`;
+    card.style.setProperty("--gx", `${50 - dx / 6}%`); card.style.setProperty("--gy", `${grabY * 100 - dy / 8}%`);
+    card.style.setProperty("--ga", Math.min(.5, Math.hypot(dx, dy) / 400));
     const up = -dy > Math.abs(dx) && -dy > 30;
     const pr = Math.min(1, Math.max(0, dx / 110)), pl = Math.min(1, Math.max(0, -dx / 110)), pu = up ? Math.min(1, -dy / 130) : 0;
     st.like.style.opacity = up ? 0 : pr; st.nope.style.opacity = up ? 0 : pl; st.super.style.opacity = pu;
@@ -502,7 +547,7 @@ function attachDrag(card, film) {
     if ((-dy > 120 && -dy > Math.abs(dx)) || (vy < -.8 && -dy > 50 && -dy > Math.abs(dx))) return vote(2, { vx, vy });
     if (dx > 110 || (vx > .55 && dx > 40)) return vote(1, { vx, vy });
     if (dx < -110 || (vx < -.55 && dx < -40)) return vote(-1, { vx, vy });
-    card.classList.add("settle"); card.style.transform = "";
+    card.classList.add("settle"); card.style.transform = ""; card.style.setProperty("--ga", 0);
     Object.values(st).forEach((s) => (s.style.opacity = 0)); tint.style.opacity = 0;
     const b = behind(); if (b) { b.classList.add("promote"); b.style.transform = ""; }
   };
@@ -574,29 +619,45 @@ function initSwipe() {
 
 /* ═══════════════════════ Fiche détaillée ═══════════════════════ */
 function openDetails(f, canVote = false) {
-  const watch = f.platforms.filter((p) => LINKS[p]);
+  const t = T(f), watch = platformsOf(f).filter((p) => LINKS[p]);
+  const bd = backdropUrl(f);
+  const head = bd
+    ? `<div class="d-hero" style="background-image:url('${bd}')">${t.trailer ? `<button class="d-play" data-trailer="${t.trailer}" aria-label="Lire la bande-annonce">${ICON.play}</button>` : ""}</div>`
+    : `<div class="d-hero d-hero-poster">${mediaHTML(f, 500)}${t?.trailer ? `<button class="d-play" data-trailer="${t.trailer}" aria-label="Lire la bande-annonce">${ICON.play}</button>` : ""}</div>`;
+  const facts = [
+    t?.rating ? `<div><b>${String(t.rating).replace(".", ",")}</b><span>note TMDB</span></div>` : "",
+    `<div><b>${fmtDuration(durationOf(f))}</b><span>durée</span></div>`,
+    `<div><b>${f.year}</b><span>sortie</span></div>`,
+  ].join("");
   $("#details-body").innerHTML = `
-    <div class="d-head">
-      <div class="d-poster">${posterHTML(f, { eager: true })}</div>
-      <div>
-        <h2>${esc(f.title)}</h2>
-        <div class="meta">${f.year} · ${fmtDuration(f.duration)}</div>
-        <div class="plats">${f.platforms.map(platHTML).join("")}</div>
+    ${head}
+    <div class="d-body">
+      <div class="d-genres">${f.genres.join(" · ")}</div>
+      <h2>${esc(f.title)}</h2>
+      ${t?.tagline ? `<p class="d-tagline">${esc(t.tagline)}</p>` : ""}
+      <div class="d-facts">${facts}</div>
+      <p class="pitch">${esc(synopsisOf(f))}</p>
+      ${t?.director || t?.cast?.length ? `<dl class="d-credits">
+        ${t.director ? `<dt>Réalisation</dt><dd>${esc(t.director)}</dd>` : ""}
+        ${t.cast?.length ? `<dt>Avec</dt><dd>${t.cast.map(esc).join(", ")}</dd>` : ""}
+      </dl>` : ""}
+      <div class="d-where">
+        <span class="eyebrow">${verified(f) ? "Disponible en France" : "Disponibilité indicative"}</span>
+        <div class="plats">${platsHTML(f)}</div>
       </div>
-    </div>
-    <div class="tags">${f.genres.map((g) => `<span class="tag">${g}</span>`).join("")}</div>
-    <p class="pitch">${esc(f.pitch)}</p>
-    <div class="d-actions">
-      <a class="btn btn-glass" href="${LINKS.trailer(f)}" target="_blank" rel="noopener">${ICON.play.replace("<svg", '<svg width="16" height="16" fill="currentColor"')}Bande-annonce</a>
-      <a class="btn btn-glass" href="${watch.length ? LINKS[watch[0]](f) : LINKS.justwatch(f)}" target="_blank" rel="noopener">${watch.length ? `Voir sur ${PLATFORMS[watch[0]].label}` : "Où regarder"}</a>
-    </div>
-    ${canVote && FILM_BY_ID[S?.deck?.[S.index]] === f ? `
-    <div class="d-vote">
-      <button class="btn btn-glass" data-dv="-1" style="color:var(--nope)">Bof</button>
-      <button class="btn btn-glass" data-dv="2" style="color:var(--super)">Coup de cœur</button>
-      <button class="btn btn-glass" data-dv="1" style="color:var(--like)">J'aime</button>
-    </div>` : ""}`;
+      <div class="d-actions">
+        <a class="btn btn-glass" href="${t?.trailer ? `https://www.youtube.com/watch?v=${t.trailer}` : LINKS.trailer(f)}" target="_blank" rel="noopener">${ICON.play}Bande-annonce</a>
+        <a class="btn btn-glass" href="${watch.length ? LINKS[watch[0]](f) : LINKS.justwatch(f)}" target="_blank" rel="noopener">${ICON.tv}${watch.length ? PLATFORMS[watch[0]].label : "Où regarder"}</a>
+      </div>
+      ${canVote && FILM_BY_ID[S?.deck?.[S.index]] === f ? `
+      <div class="d-vote">
+        <button class="dv dv-nope" data-dv="-1">${ICON.x}<span>Bof</span></button>
+        <button class="dv dv-super" data-dv="2">${ICON.star}<span>Coup de cœur</span></button>
+        <button class="dv dv-like" data-dv="1">${ICON.heart}<span>J'aime</span></button>
+      </div>` : ""}
+    </div>`;
   $("#details-modal").hidden = false;
+  $("#details-modal .sheet").scrollTop = 0;
 }
 
 /* ═══════════════════════ Finale ═══════════════════════ */
@@ -611,7 +672,7 @@ function renderFinal() {
       <div class="thumb">${posterHTML(f, { eager: true })}</div>
       <div>
         <h3>${esc(f.title)}</h3>
-        <div class="sub">${f.year} · ${fmtDuration(f.duration)} · ${f.platforms.map((p) => PLATFORMS[p].label).join(", ")}</div>
+        <div class="sub">${f.year} · ${fmtDuration(durationOf(f))} · ${platformsOf(f).map((p) => PLATFORMS[p].label).join(", ")}</div>
         <div class="pts">${r ? `<span class="tag">${r.score} pt${r.score > 1 ? "s" : ""} au 1er tour</span>` : ""}</div>
         ${reveal ? `<div class="votes">${t.votes} voix</div>` : ""}
       </div>
@@ -620,7 +681,7 @@ function renderFinal() {
   $("#final-status").textContent = S.pick
     ? `${o.voted}/${players.length} ont voté${o.voted < players.length ? " · tu peux encore changer d'avis" : ""}`
     : `${o.voted}/${players.length} ont voté · fais ton choix`;
-  const f = FILM_BY_ID[S.pick || S.finalDeck[0]]; if (f) setBackdrop(posterUrl(f));
+  const f = FILM_BY_ID[S.pick || S.finalDeck[0]]; if (f) setBackdrop(backdropUrl(f) || posterUrl(f, 300));
 }
 function initFinal() {
   $("#final-choices").addEventListener("click", (e) => {
@@ -648,24 +709,24 @@ function renderResults() {
     const scoreBadge = o.final
       ? `<b>${o.tally[0].votes}</b><small>voix</small>`
       : `<b>${row?.score ?? 0}</b><small>pts</small>`;
-    const watch = f.platforms.filter((p) => LINKS[p]);
+    const watch = platformsOf(f).filter((p) => LINKS[p]);
     $("#winner").innerHTML = `
       <div class="hero ${o.decided ? "decided" : ""}">
-        ${posterHTML(f, { eager: true })}
+        ${mediaHTML(f)}
         <div class="shade"></div>
         <div class="score">${scoreBadge}</div>
         <div class="body">
           <span class="label">${o.decided ? "🍿 " : ""}${label}</span>
           <h2>${esc(f.title)}</h2>
-          <div class="meta">${f.year} · ${fmtDuration(f.duration)} · ${row ? `${row.likers.length}/${players.length} ont liké` : ""}</div>
-          <div class="plats">${f.platforms.map(platHTML).join("")}</div>
+          <div class="meta">${f.year} · ${fmtDuration(durationOf(f))} · ${row ? `${row.likers.length}/${players.length} ont liké` : ""}</div>
+          <div class="plats">${platsHTML(f)}${ratingHTML(f)}</div>
         </div>
       </div>
       <div class="watch-row">
-        <a class="btn btn-glass" href="${LINKS.trailer(f)}" target="_blank" rel="noopener">${ICON.play}Bande-annonce</a>
+        <a class="btn btn-glass" href="${T(f)?.trailer ? `https://www.youtube.com/watch?v=${T(f).trailer}` : LINKS.trailer(f)}" target="_blank" rel="noopener">${ICON.play}Bande-annonce</a>
         <a class="btn ${o.decided ? "btn-gold" : "btn-glass"}" href="${watch.length ? LINKS[watch[0]](f) : LINKS.justwatch(f)}" target="_blank" rel="noopener">${ICON.tv}${watch.length ? PLATFORMS[watch[0]].label : "Où regarder"}</a>
       </div>`;
-    setBackdrop(posterUrl(f));
+    setBackdrop(backdropUrl(f) || posterUrl(f, 300));
     if (o.decided && !S.celebrated) { S.celebrated = true; saveLocal(); setTimeout(confetti, 300); vibrate([30, 40, 30, 40, 200]); }
   }
 
@@ -691,7 +752,7 @@ function renderResults() {
       <div class="rank-thumb">${posterHTML(r.film)}</div>
       <div>
         <div class="rank-title">${esc(r.film.title)}</div>
-        <div class="rank-sub">${r.film.year} · ${fmtDuration(r.film.duration)} · ${r.film.platforms.map((p) => PLATFORMS[p].label).join(", ")}</div>
+        <div class="rank-sub">${r.film.year} · ${fmtDuration(durationOf(r.film))} · ${platformsOf(r.film).map((p) => PLATFORMS[p].label).join(", ")}</div>
         <div class="rank-who">
           ${r.likers.map((l) => `<span class="who ${l.s ? "s" : ""}">${avatarHTML(l.p)}${l.s ? "★" : "♥"} ${esc(l.p.name)}</span>`).join("")}
           ${r.vetoers.map((p) => `<span class="who v">${avatarHTML(p)}⛔ ${esc(p.name)}</span>`).join("")}
@@ -756,12 +817,18 @@ async function doCopy() {
 }
 function initModals() {
   $$(".modal").forEach((m) => m.addEventListener("click", (e) => {
-    if (e.target === m || e.target.closest("[data-close]")) m.hidden = true;
+    if (e.target === m || e.target.closest("[data-close]")) { m.hidden = true; if (m.id === "details-modal") $("#details-body").innerHTML = ""; }
   }));
   document.addEventListener("click", (e) => {
     if (e.target.closest("[data-share]")) doShare();
     if (e.target.closest("[data-copy]")) doCopy();
     if (e.target.closest("[data-open-share]")) openShare();
+    const tr = e.target.closest("[data-trailer]");
+    if (tr) {
+      const hero = tr.closest(".d-hero");
+      hero.classList.add("playing");
+      hero.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(tr.dataset.trailer)}?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="Bande-annonce"></iframe>`;
+    }
     const dv = e.target.closest("[data-dv]");
     if (dv) { $("#details-modal").hidden = true; setTimeout(() => vote(Number(dv.dataset.dv)), 200); }
   });
@@ -784,6 +851,7 @@ function initModals() {
 }
 
 /* ═══════════════════════ Démarrage ═══════════════════════ */
+loadCatalog();
 initHome(); initCreate(); initSwipe(); initFinal(); initResults(); initModals();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 const autoCode = (new URLSearchParams(location.search).get("s") || "").toUpperCase();
