@@ -516,7 +516,7 @@ input[type="text"]:focus { border-color: rgba(255, 77, 109, .6); background: rgb
 
 /* cadré (affiche basse définition) : nette, centrée, sur fond flouté */
 .media.framed .media-frame {
-  left: 50%; top: 7%; width: min(58%, 250px); aspect-ratio: 2 / 3; transform: translateX(-50%);
+  left: 50%; top: 9%; height: 52%; width: auto; max-width: 64%; aspect-ratio: 2 / 3; transform: translateX(-50%);
   border-radius: 14px; box-shadow: 0 30px 60px -12px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.12);
 }
 .media.framed .media-frame::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(160deg, rgba(255,255,255,.18), transparent 35%); pointer-events: none; }
@@ -536,18 +536,15 @@ input[type="text"]:focus { border-color: rgba(255, 77, 109, .6); background: rgb
 .rating svg { width: 12px; height: 12px; fill: currentColor; }
 
 /* héros résultats */
-.hero .media.framed .media-frame { top: 6%; width: min(56%, 230px); }
+.hero .media.framed .media-frame { top: 7%; height: 56%; }
 .hero:has(.media.framed) .shade { background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(7,7,10,.85) 70%, rgba(7,7,10,.97)); }
 .hero:has(.media.framed) .body { text-align: center; }
 .hero:has(.media.framed) .plats { justify-content: center; }
 .hero { aspect-ratio: 2 / 2.75; }
 
-/* dock d'actions */
-.actions { position: relative; }
-.actions::before { content: ""; position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: min(92%, 380px); height: 84px; border-radius: 42px;
-  background: rgba(16,16,22,.55); border: 1px solid var(--stroke); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); z-index: -1; }
-.act { background: rgba(255,255,255,.04); box-shadow: none; }
-.act-lg { box-shadow: 0 10px 30px -10px rgba(0,0,0,.7); background: rgba(255,255,255,.07); }
+/* actions */
+.act { background: rgba(255,255,255,.06); }
+.act-lg { background: rgba(255,255,255,.09); box-shadow: 0 14px 34px -12px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.08); }
 
 /* ═════════ fiche détaillée ═════════ */
 .sheet.details { padding: 0 0 calc(20px + max(var(--safe-b), var(--badge))); gap: 0; overflow-x: hidden; }

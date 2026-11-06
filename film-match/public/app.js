@@ -555,9 +555,15 @@ function attachDrag(card, film) {
   card.addEventListener("pointercancel", end);
 }
 
-let animating = false;
+let animating = false, animTimer = null;
+function finishAnimation() {
+  if (!animating) return;
+  clearTimeout(animTimer); animating = false; renderDeck();
+}
 function vote(v, { vx = 0 } = {}) {
-  if (!S || animating || isDone()) return;
+  if (!S) return;
+  finishAnimation(); // un tap rapide n'est jamais perdu : on termine la carte précédente
+  if (isDone()) return;
   const card = $("#deck .card:last-child");
   const id = S.deck[S.index];
   S.votes[id] = v; S.index++; S.started = true;
@@ -575,10 +581,11 @@ function vote(v, { vx = 0 } = {}) {
   else card.style.transform = `translate3d(${v === 1 ? W : -W}px, ${80 + Math.abs(vx) * 40}px, 0) rotate(${v === 1 ? 28 : -28}deg)`;
   const b = $("#deck .card.depth-1");
   if (b) { b.classList.add("promote"); b.style.transform = "translateY(0) scale(1)"; b.classList.remove("depth-1"); }
-  setTimeout(() => { animating = false; renderDeck(); if (isDone()) pushVotes(); }, 330);
+  animTimer = setTimeout(() => { animating = false; renderDeck(); if (isDone()) pushVotes(); }, 330);
 }
 function undo() {
-  if (!S || S.index === 0 || animating) return;
+  if (!S || S.index === 0) return;
+  finishAnimation();
   S.index--; delete S.votes[S.deck[S.index]];
   saveLocal(); scheduleSave(); renderDeck(); vibrate(8);
 }
