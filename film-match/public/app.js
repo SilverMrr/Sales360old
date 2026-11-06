@@ -239,7 +239,7 @@ const filters = Object.assign(
   { platforms: Object.keys(PLATFORMS), genres: [], maxDuration: 0, size: 30 },
   store.get("fm:filters", {}),
 );
-const DURATIONS = [[0, "Peu importe"], [100, "1 h 40"], [120, "2 h"], [150, "2 h 30"]];
+const DURATIONS = [[0, "Libre"], [100, "1 h 40"], [120, "2 h"], [150, "2 h 30"]];
 const SIZES = [[20, "20"], [30, "30"], [50, "50"], [0, "Tous"]];
 
 function filteredFilms() {

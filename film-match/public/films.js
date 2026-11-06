@@ -7,7 +7,7 @@ export const PLATFORMS = {
   disney:    { label: "Disney+",      color: "#113ccf" },
   max:       { label: "HBO Max",      color: "#7b2cf5" },
   apple:     { label: "Apple TV",     color: "#8e8e93" },
-  canal:     { label: "Canal+",       color: "#111111" },
+  canal:     { label: "Canal+",       color: "#d8d8d8" },
   paramount: { label: "Paramount+",   color: "#0064ff" },
 };
 

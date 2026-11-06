@@ -622,3 +622,6 @@ input[type="text"]:focus { border-color: rgba(255, 77, 109, .6); background: rgb
   .card h2 { font-size: 30px; }
   .media.framed .media-frame { height: 44%; top: 5%; }
 }
+
+.stamp.nope { right: 62px; }
+.seg { white-space: nowrap; font-size: 13.5px; }
