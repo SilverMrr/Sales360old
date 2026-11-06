@@ -93,6 +93,12 @@ const platsHTML = (f) => platformsOf(f).map(platHTML).join("");
 const ratingHTML = (f) => (T(f)?.rating ? `<span class="rating">${ICON.star}${String(T(f).rating).replace(".", ",")}</span>` : "");
 const avatarHTML = (p, cls = "") => `<span class="avatar ${cls}" style="background:${avatarColor(p.id)}">${esc((p.name || "?").slice(0, 1).toUpperCase())}</span>`;
 
+// Ne remplace le contenu que s'il a changé (évite clignotements et animations rejouées au polling)
+function setHTML(el, html) {
+  if (!el || el._html === html) return false;
+  el.innerHTML = html; el._html = html; return true;
+}
+
 let toastTimer;
 function toast(msg, ms = 2400) {
   const t = $("#toast");
@@ -428,8 +434,8 @@ function checkMatches() {
 function renderLobby() {
   $("#lobby-code").textContent = S.code;
   renderQR($("#lobby-qr"));
-  $("#lobby-players").innerHTML = allPlayers().map((p) =>
-    `<div class="lobby-player">${avatarHTML(p)}${esc(p.name)}${p.id === me.id ? " <small>toi</small>" : ""}${p.id === S.hostId ? " <small>· hôte</small>" : ""}</div>`).join("");
+  setHTML($("#lobby-players"), allPlayers().map((p) =>
+    `<div class="lobby-player">${avatarHTML(p)}${esc(p.name)}${p.id === me.id ? " <small>toi</small>" : ""}${p.id === S.hostId ? " <small>· hôte</small>" : ""}</div>`).join(""));
   const plats = (S.filters?.platforms || []).map((k) => PLATFORMS[k]?.label).filter(Boolean);
   $("#lobby-deck-info").textContent = `${S.deck.length} films à swiper${plats.length && plats.length < 7 ? ` · ${plats.join(", ")}` : ""}`;
   const f = FILM_BY_ID[S.deck[0]]; if (f) setBackdrop(backdropUrl(f) || posterUrl(f, 300));
@@ -450,7 +456,7 @@ function renderAvatars() {
     const n = Object.keys(p.votes).length, pct = Math.min(1, n / S.deck.length), c = 2 * Math.PI * 14.5;
     return `<span class="ring"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14.5" stroke="rgba(255,255,255,.12)"/><circle cx="16" cy="16" r="14.5" stroke="${avatarColor(p.id)}" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}" stroke-linecap="round"/></svg>${avatarHTML(p)}</span>`;
   };
-  $("#swipe-avatars").innerHTML = `<span class="stack">${ps.map(ring).join("")}</span><span class="code"><small>Code</small>${S.code}</span>`;
+  setHTML($("#swipe-avatars"), `<span class="stack">${ps.map(ring).join("")}</span><span class="code"><small>Code</small>${S.code}</span>`);
 }
 
 function cardHTML(f) {
@@ -674,7 +680,7 @@ function renderFinal() {
   const o = outcome(), players = allPlayers();
   const rows = Object.fromEntries(ranking().map((r) => [r.id, r]));
   const reveal = o.decided;
-  $("#final-choices").innerHTML = S.finalDeck.map((id) => {
+  setHTML($("#final-choices"), S.finalDeck.map((id) => {
     const f = FILM_BY_ID[id]; if (!f) return "";
     const r = rows[id], t = o.tally.find((x) => x.id === id);
     return `<button class="final-choice ${S.pick === id ? "picked" : ""}" data-pick="${id}">
@@ -686,7 +692,7 @@ function renderFinal() {
         ${reveal ? `<div class="votes">${t.votes} voix</div>` : ""}
       </div>
     </button>`;
-  }).join("");
+  }).join(""));
   $("#final-status").textContent = S.pick
     ? `${o.voted}/${players.length} ont voté${o.voted < players.length ? " · tu peux encore changer d'avis" : ""}`
     : `${o.voted}/${players.length} ont voté · fais ton choix`;
@@ -710,7 +716,7 @@ function renderResults() {
   $("#btn-back-swipe").style.visibility = S.ended ? "hidden" : "visible";
 
   if (!f) {
-    $("#winner").innerHTML = `<div class="empty"><div class="big">Pas encore de favori</div>Les likes apparaîtront ici en direct.</div>`;
+    setHTML($("#winner"), `<div class="empty"><div class="big">Pas encore de favori</div>Les likes apparaîtront ici en direct.</div>`);
     setBackdrop("");
   } else {
     const row = rows.find((r) => r.id === f.id);
@@ -719,7 +725,7 @@ function renderResults() {
       ? `<b>${o.tally[0].votes}</b><small>voix</small>`
       : `<b>${row?.score ?? 0}</b><small>pts</small>`;
     const watch = platformsOf(f).filter((p) => LINKS[p]);
-    $("#winner").innerHTML = `
+    setHTML($("#winner"), `
       <div class="hero ${o.decided ? "decided" : ""}">
         ${mediaHTML(f)}
         <div class="shade"></div>
@@ -734,7 +740,7 @@ function renderResults() {
       <div class="watch-row">
         <a class="btn btn-glass" href="${T(f)?.trailer ? `https://www.youtube.com/watch?v=${T(f).trailer}` : LINKS.trailer(f)}" target="_blank" rel="noopener">${ICON.play}Bande-annonce</a>
         <a class="btn ${o.decided ? "btn-gold" : "btn-glass"}" href="${watch.length ? LINKS[watch[0]](f) : LINKS.justwatch(f)}" target="_blank" rel="noopener">${ICON.tv}${watch.length ? PLATFORMS[watch[0]].label : "Où regarder"}</a>
-      </div>`;
+      </div>`);
     setBackdrop(backdropUrl(f) || posterUrl(f, 300));
     if (o.decided && !S.celebrated) { S.celebrated = true; saveLocal(); setTimeout(confetti, 300); vibrate([30, 40, 30, 40, 200]); }
   }
@@ -753,9 +759,9 @@ function renderResults() {
   } else if (o.tie) {
     host = `<p class="host-note">Égalité en tête : l'hôte peut lancer une finale.</p>`;
   }
-  $("#host-actions").innerHTML = host;
+  setHTML($("#host-actions"), host);
 
-  $("#ranking").innerHTML = rows.slice(0, 20).map((r, i) => `
+  setHTML($("#ranking"), rows.slice(0, 20).map((r, i) => `
     <li class="rank-item ${r.vetoers.length ? "vetoed" : ""}" style="animation-delay:${i * 30}ms" data-details="${r.id}">
       <div class="rank-pos">${r.vetoers.length ? "—" : i + 1}</div>
       <div class="rank-thumb">${posterHTML(r.film)}</div>
@@ -768,9 +774,9 @@ function renderResults() {
         </div>
       </div>
       <div class="rank-score">${r.score}<small>pts</small></div>
-    </li>`).join("") || `<li class="empty">Rien pour l'instant.</li>`;
+    </li>`).join("") || `<li class="empty">Rien pour l'instant.</li>`);
 
-  $("#players-list").innerHTML = players.map((p) => {
+  setHTML($("#players-list"), players.map((p) => {
     const n = Object.keys(p.votes).length, likes = Object.values(p.votes).filter((v) => v > 0).length;
     const status = S.phase === "final" ? (p.pick ? "a voté" : "réfléchit…") : p.done ? "a fini" : `${n}/${S.deck.length}`;
     return `<div class="player">
@@ -779,7 +785,7 @@ function renderResults() {
         <div class="pbar"><div style="width:${(n / S.deck.length) * 100}%"></div></div></div>
       <div class="pstat"><b>${status}</b>${likes} like${likes > 1 ? "s" : ""}</div>
     </div>`;
-  }).join("");
+  }).join(""));
 }
 
 function initResults() {
