@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0d0d12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>FilmMatch</title>
+  <meta name="description" content="Swipez des films à plusieurs, chacun sur son téléphone. Le film le plus liké gagne." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Accueil -->
+    <section id="screen-home" class="screen active">
+      <div class="home-wrap">
+        <div class="brand">
+          <div class="brand-logo">🎬</div>
+          <h1>Film<span>Match</span></h1>
+          <p class="tagline">Chacun swipe sur son tel. Le film le plus liké, on le regarde.</p>
+        </div>
+
+        <label class="field">
+          <span>Ton prénom</span>
+          <input id="name-input" type="text" maxlength="24" autocomplete="given-name" placeholder="Ex. Silvain" />
+        </label>
+
+        <button id="btn-go-create" class="btn btn-primary btn-lg">Créer une session</button>
+
+        <div class="divider"><span>ou rejoindre</span></div>
+
+        <div class="join-row">
+          <input id="code-input" type="text" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="CODE" />
+          <button id="btn-join" class="btn btn-secondary">Rejoindre</button>
+        </div>
+        <p id="home-error" class="error" hidden></p>
+
+        <p id="resume-box" class="resume" hidden></p>
+      </div>
+    </section>
+
+    <!-- Création -->
+    <section id="screen-create" class="screen">
+      <header class="topbar">
+        <button class="icon-btn" data-back="home" aria-label="Retour">←</button>
+        <h2>Nouvelle session</h2>
+        <span></span>
+      </header>
+      <div class="scroll">
+        <div class="block">
+          <h3>Plateformes</h3>
+          <p class="hint">Décoche celles que vous n'avez pas.</p>
+          <div id="platform-chips" class="chips"></div>
+        </div>
+        <div class="block">
+          <h3>Genres</h3>
+          <p class="hint">Aucun sélectionné = tous les genres.</p>
+          <div id="genre-chips" class="chips"></div>
+        </div>
+        <div class="block">
+          <h3>Durée max</h3>
+          <div id="duration-chips" class="chips"></div>
+        </div>
+        <div class="block">
+          <h3>Nombre de films à swiper</h3>
+          <div id="size-chips" class="chips"></div>
+        </div>
+      </div>
+      <footer class="bottombar">
+        <p id="create-count" class="count"></p>
+        <button id="btn-create" class="btn btn-primary btn-lg">Lancer la session</button>
+        <p id="create-error" class="error" hidden></p>
+      </footer>
+    </section>
+
+    <!-- Swipe -->
+    <section id="screen-swipe" class="screen">
+      <header class="topbar">
+        <button class="icon-btn" id="btn-leave" aria-label="Accueil">⌂</button>
+        <button class="code-pill" id="btn-share" aria-label="Inviter">
+          <span class="code-label">Code</span> <strong id="swipe-code">····</strong> <span class="share-ico">↗</span>
+        </button>
+        <button class="icon-btn" id="btn-to-results" aria-label="Classement">🏆<span id="players-badge" class="badge">1</span></button>
+      </header>
+      <div class="progress"><div id="progress-bar"></div></div>
+      <div id="deck" class="deck"></div>
+      <div id="deck-done" class="deck-done" hidden>
+        <div class="big-emoji">🍿</div>
+        <h2>Tu as tout swipé</h2>
+        <p>On attend les autres…</p>
+        <button class="btn btn-primary" id="btn-done-results">Voir le classement</button>
+      </div>
+      <nav class="actions">
+        <button class="act act-undo" id="act-undo" aria-label="Annuler">↺</button>
+        <button class="act act-nope" id="act-nope" aria-label="Non">✕</button>
+        <button class="act act-super" id="act-super" aria-label="Super like (compte double)">★</button>
+        <button class="act act-like" id="act-like" aria-label="J'aime">♥</button>
+      </nav>
+    </section>
+
+    <!-- Résultats -->
+    <section id="screen-results" class="screen">
+      <header class="topbar">
+        <button class="icon-btn" id="btn-back-swipe" aria-label="Retour au swipe">←</button>
+        <h2>Classement</h2>
+        <button class="icon-btn" id="btn-share-2" aria-label="Inviter">↗</button>
+      </header>
+      <div class="scroll">
+        <div id="winner"></div>
+        <div class="block">
+          <h3>Joueurs</h3>
+          <div id="players-list" class="players"></div>
+        </div>
+        <div class="block">
+          <h3>Top des films</h3>
+          <ol id="ranking" class="ranking"></ol>
+        </div>
+        <div class="block end-actions">
+          <button id="btn-end" class="btn btn-secondary" hidden>Terminer la session pour tout le monde</button>
+          <button id="btn-new" class="btn btn-ghost">Nouvelle session</button>
+        </div>
+        <p class="disclaimer">Plateformes indicatives pour la France : les catalogues changent. Vérifie via le lien JustWatch du film.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modale partage -->
+  <div id="share-modal" class="modal" hidden>
+    <div class="modal-card">
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
+      <p class="hint">Code de la session</p>
+      <div id="share-code" class="share-code">····</div>
+      <div id="qr" class="qr"></div>
+      <button id="btn-native-share" class="btn btn-primary">Envoyer le lien</button>
+      <button id="btn-copy" class="btn btn-ghost">Copier le lien</button>
+    </div>
+  </div>
+
+  <!-- Modale match -->
+  <div id="match-modal" class="modal match" hidden>
+    <div class="modal-card">
+      <h2 class="match-title">C'est un match&nbsp;!</h2>
+      <p class="hint">Tout le monde a liké</p>
+      <div id="match-film"></div>
+      <button id="btn-match-results" class="btn btn-primary">Voir le classement</button>
+      <button class="btn btn-ghost" data-close>Continuer à swiper</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
