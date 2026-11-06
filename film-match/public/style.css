@@ -594,3 +594,7 @@ input[type="text"]:focus { border-color: rgba(255, 77, 109, .6); background: rgb
 /* finitions */
 .topbar h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
 .final-choice .thumb .poster, .rank-thumb .poster { border-radius: inherit; }
+
+/* Empêche le glisser-déposer natif des images et le menu d'appui long iOS pendant le swipe */
+.card, .card * { -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; -webkit-user-select: none; }
+.card img, .wall img, .hero img { pointer-events: none; }

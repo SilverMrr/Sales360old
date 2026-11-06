@@ -81,10 +81,10 @@ function posterHTML(f, { eager = false, w = 300 } = {}) {
 function mediaHTML(f, w = 780) {
   const src = posterUrl(f, w);
   return `<div class="media ${hires(f) ? "full" : "framed"}" data-media>
-    <img class="media-bg" src="${posterUrl(f, 200)}" alt="" decoding="async" onerror="this.remove()">
+    <img class="media-bg" src="${posterUrl(f, 200)}" alt="" draggable="false" decoding="async" onerror="this.remove()">
     <div class="media-frame">
       <div class="fb" style="${fbStyle(f)}">${esc(f.title)}</div>
-      <img class="media-art" src="${src}" alt="" decoding="async" onload="fmArt(this)" onerror="fmNoArt(this)">
+      <img class="media-art" src="${src}" alt="" draggable="false" decoding="async" onload="fmArt(this)" onerror="fmNoArt(this)">
     </div>
   </div>`;
 }
