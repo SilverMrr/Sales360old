@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prototypes animations</title>
+  <link rel="icon" href="../icons/icon-32.png">
+  <script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+  <style>
+    :root { --bg: #0d1016; --card: #171d28; --line: #263042; --text: #e8ecf3; --muted: #8a94a7; --accent: #5b8cff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, sans-serif; font-size: 14px; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 60px; }
+    h1 { font-size: 22px; margin: 0 0 6px; } h2 { font-size: 17px; margin: 28px 0 4px; }
+    p { color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+    .card h3 { font-size: 14px; margin: 0; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .stage { height: 420px; position: relative; }
+    .stage.b { height: auto; aspect-ratio: 1; padding: 0 12px 12px; }
+    .tag { font-size: 11px; color: var(--muted); font-weight: 500; }
+    .ctrl { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; flex-wrap: wrap; position: sticky; top: 8px; z-index: 5; }
+    button, select { font: inherit; color: var(--text); background: #1d2431; border: 1px solid var(--line); border-radius: 9px; padding: 7px 12px; cursor: pointer; }
+    a { color: var(--accent); }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .stage { height: 360px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Prototypes d’animations</h1>
+    <p>Deux exercices courants rendus de deux façons. Rythme : 1,2 s en montée, 0,3 s de pause, 1,7 s en descente. Le muscle ciblé s’allume pendant l’effort. <a href="../">← Retour à l’app</a></p>
+    <div class="ctrl">
+      <button id="play">⏸ Pause</button>
+      <label>Vitesse <select id="speed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option></select></label>
+    </div>
+
+    <h2>Option A — 3D (mannequin articulé + machine)</h2>
+    <p>Tournable et zoomable comme le corps de l’app (glisser / pincer).</p>
+    <div class="grid">
+      <div class="card"><h3>Leg extension <span class="tag">quadriceps</span></h3><div class="stage" id="a1"></div></div>
+      <div class="card"><h3>Tirage vertical <span class="tag">grand dorsal</span></h3><div class="stage" id="a2"></div></div>
+    </div>
+
+    <h2>Option B — 2D vectorielle</h2>
+    <p>Vue fixe (profil ou face), très légère, style aplat cohérent avec l’icône.</p>
+    <div class="grid">
+      <div class="card"><h3>Leg extension <span class="tag">vue de profil</span></h3><div class="stage b" id="b1"></div></div>
+      <div class="card"><h3>Tirage vertical <span class="tag">vue de face</span></h3><div class="stage b" id="b2"></div></div>
+    </div>
+  </div>
+  <script type="module">
+    import { legExtension, latPulldown } from './a3d.js';
+    import { legExtension2D, latPulldown2D } from './b2d.js';
+    const apis = [legExtension2D(document.getElementById('b1')), latPulldown2D(document.getElementById('b2'))];
+    try { apis.push(legExtension(document.getElementById('a1')), latPulldown(document.getElementById('a2'))); }
+    catch (e) { console.error(e); for (const id of ['a1', 'a2']) document.getElementById(id).textContent = 'WebGL indisponible.'; }
+    const play = document.getElementById('play');
+    play.onclick = () => { const on = !apis[0].playing; apis.forEach(a => a.playing = on); play.textContent = on ? '⏸ Pause' : '▶ Lecture'; };
+    document.getElementById('speed').onchange = e => apis.forEach(a => a.speed = Number(e.target.value));
+    window.apis = apis;
+  </script>
+</body>
+</html>
