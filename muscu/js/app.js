@@ -120,11 +120,19 @@ function renderPanel() {
         <div class="kpi"><div class="l">Muscles</div><div class="v">${Object.keys(MUSCLES).length}</div></div>
         <div class="kpi"><div class="l">Exercices</div><div class="v">${Object.keys(EXERCISES).length}</div><div class="s">${Object.values(EXERCISES).filter(e => e.equip === 'Machine').length} sur machine</div></div>
       </div>
+      <input id="exSearch" placeholder="Rechercher un exercice ou une machine…" style="width:100%">
+      <div class="ex-list" id="exResults" style="margin-top:8px"></div>
       <div class="muscle-groups">
         ${Object.entries(groups).map(([g, list]) => `<div><h4>${esc(g)}</h4><div class="chips">${list.map(([mid, m]) => `<button class="chip" data-m="${mid}">${esc(m.name)} <span class="muted">· ${n1(v[mid].sets)}</span></button>`).join('')}</div></div>`).join('')}
       </div>
       <p class="muted small" style="margin-top:16px">Le chiffre après chaque muscle = séries effectives des 7 derniers jours (série directe = 1, muscle secondaire = 0,5).</p>`;
     $$('[data-m]', el).forEach(b => b.addEventListener('click', () => selectMuscle(b.dataset.m)));
+    const norm = x => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    $('#exSearch', el).addEventListener('input', e => {
+      const q = norm(e.target.value.trim()); const box = $('#exResults', el);
+      box.innerHTML = q.length < 2 ? '' : Object.values(EXERCISES).filter(x => norm(x.name + ' ' + x.machine + ' ' + x.equip).includes(q)).slice(0, 12).map(exCard).join('') || '<p class="muted">Aucun résultat.</p>';
+      bindExCards(box);
+    });
     return;
   }
 
