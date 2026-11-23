@@ -290,7 +290,7 @@ function renderLibrary() {
     el.classList.remove('wrap');
     const equips = [...new Set(Object.values(EXERCISES).map(e => e.equip))].sort();
     el.innerHTML = `<div class="lib-top"><div>
-        <div class="search">${ICON.search}<input id="lQ" type="search" placeholder="Rechercher un exercice, une machine…" autocomplete="off"></div>
+        <div class="search">${ICON.search}<input id="lQ" type="search" placeholder="Exercice, machine, nom anglais…" autocomplete="off"></div>
         <div class="frow">
           <select id="lM"><option value="">Tous les muscles</option>${Object.entries(MUSCLES).map(([k, m]) => `<option value="${k}">${esc(m.name)}</option>`).join('')}</select>
           <select id="lE"><option value="">Tout matériel</option>${equips.map(e => `<option>${esc(e)}</option>`).join('')}</select>
@@ -314,10 +314,14 @@ function renderLibrary() {
   $$('#lChips .chip', el).forEach(c => { const k = c.dataset.f; c.classList.toggle('on', k === 'poly' || k === 'iso' ? f.mech === k : !!f[k]); });
   const q = norm(f.q.trim());
   const list = Object.values(EXERCISES).filter(e =>
-    (!q || norm(e.name + ' ' + e.equip + ' ' + e.setup + ' ' + e.focus + ' ' + e.primary.map(m => MUSCLES[m].name).join(' ')).includes(q)) &&
+    (!q || q.split(/\s+/).every(w => norm(e.name + ' ' + e.aka + ' ' + e.equip + ' ' + e.focus + ' ' + e.primary.map(m => MUSCLES[m].name).join(' ')).includes(w))) &&
     (!f.m || e.act[f.m]) && (!f.eq || e.equip === f.eq) && (!f.mech || e.mech === f.mech) &&
     (!f.mine || availability(e) === 'ok') && (!f.anim || hasAnim(e.id)))
-    .sort((a, b) => (f.m ? b.act[f.m] - a.act[f.m] : a.name.localeCompare(b.name)));
+    .sort((a, b) => {
+      if (f.m) return b.act[f.m] - a.act[f.m];
+      if (q) { const sc = e => norm(e.name + ' ' + e.aka).includes(q) ? 0 : 1; const d = sc(a) - sc(b); if (d) return d; }
+      return a.name.localeCompare(b.name);
+    });
   $('#libCount', el).textContent = `${list.length} exercice${list.length > 1 ? 's' : ''}${f.m ? ` · classés par sollicitation (${MUSCLES[f.m].name})` : ''}`;
   $('#libList', el).innerHTML = list.map(e => exCard(e, { muscle: f.m || null })).join('') || '<p class="muted">Aucun exercice ne correspond.</p>';
   bindExCards($('#libList', el));

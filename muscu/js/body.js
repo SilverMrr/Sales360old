@@ -13,6 +13,16 @@ const DIM_COLOR = 0x4d4444;
 const SEL_COLOR = 0x4f86ff;
 const HEAD_COLOR = 0x8a5550;
 
+// Détourage léger : assombrit les bords des formes (angle rasant), ce qui sépare visuellement les muscles.
+function outline(mat, strength = 0.55) {
+  mat.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
+      float rimK = 1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition)));
+      gl_FragColor.rgb *= 1.0 - ${strength.toFixed(2)} * pow(rimK, 2.2);`);
+  };
+  return mat;
+}
+
 // Zone de la tête dans les coordonnées du modèle (m) : supprime les triangles du visage et du crâne.
 const inHead = (x, y, z) => y > 1.556 || (y > 1.488 && z > 0.018) || (y > 1.52 && Math.abs(x) > 0.045 && z > -0.03);
 function trimHead(mesh) {
@@ -115,13 +125,14 @@ export class Body3D {
         color: isBone ? BONE_COLOR : id === 'other' ? OTHER_COLOR : MUSCLE_COLOR,
         roughness: isBone ? 0.8 : 0.55, metalness: 0.0,
       });
+      if (!isBone) outline(o.material);
       o.userData.id = id;
       if (this.clickable.has(id)) { o.userData.muscle = id; this.meshes[id] = o; }
       if (id === 'other' || id === 'bones') { o.updateMatrixWorld(true); trimHead(o); }
       if (id === 'other') this.passive.push(o);
     });
     // Tête : on remplace crâne, yeux et muscles du visage (peu lisibles) par une tête lisse type mannequin.
-    const head = makeHead(new THREE.MeshStandardMaterial({ color: HEAD_COLOR, roughness: 0.6, metalness: 0, side: THREE.DoubleSide }));
+    const head = makeHead(outline(new THREE.MeshStandardMaterial({ color: HEAD_COLOR, roughness: 0.6, metalness: 0, side: THREE.DoubleSide }), 0.3));
     model.add(head); this.passive.push(head.children[0]);
     // recentrage : pieds au sol, centré en x/z
     const box = new THREE.Box3().setFromObject(model);

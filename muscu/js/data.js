@@ -1,5 +1,6 @@
 // Référentiel : muscles, équipement (profil Basic-Fit générique), paramètres d'entraînement.
 import { EXERCISE_LIST } from './exercises.js';
+import { EXTRA_LIST, ALIASES } from './exercises2.js';
 
 // mev / mrv : repères de volume hebdomadaire (séries) pour l'hypertrophie, valeurs moyennes à individualiser.
 export const MUSCLES = {
@@ -133,13 +134,13 @@ export const RPE_HELP = 'RPE = effort perçu sur 10 (10 = échec ; 9 = 1 rep en 
 export const DIFFICULTY = ['', 'Débutant', 'Intermédiaire', 'Avancé'];
 
 // ----- Exercices
-export const EXERCISES = Object.fromEntries(EXERCISE_LIST.map(e => {
+export const EXERCISES = Object.fromEntries([...EXERCISE_LIST, ...EXTRA_LIST].map(e => {
   const total = Object.values(e.act).reduce((a, b) => a + b, 0);
   const act = Object.fromEntries(Object.entries(e.act).map(([k, v]) => [k, Math.round(v / total * 100)]));
   const max = Math.max(...Object.values(act));
   const primary = Object.keys(act).filter(k => act[k] >= 25 || act[k] === max);
   const secondary = Object.keys(act).filter(k => !primary.includes(k));
-  return [e.id, { ...e, act, primary, secondary }];
+  return [e.id, { ...e, act, primary, secondary, aka: ALIASES[e.id] || '' }];
 }));
 
 // ----- Salle (profil Basic-Fit + ajustements de l'utilisateur, stockés localement)
