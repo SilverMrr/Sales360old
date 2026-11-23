@@ -47,7 +47,7 @@ Consigne de l'utilisateur : **animations 2D simplifiées, cohérentes et claires
 ## Coût mesuré
 Lot 1 (moteur + 10 exercices + intégration) : ~10–12k tokens de code, 2–3 passes de capture. Un exercice supplémentaire ≈ 5–8k tokens. Une variante (même geste, autre matériel) ≈ 1–3k tokens.
 
-## Fait (49)
+## Fait (67)
 Lot 1 : leg_ext, leg_curl, leg_press, chest_press, shoulder_press_m, seated_row, lat_pd, pushdown, curl_db, lat_raise_db
 
 Lot 2 (23/11/2026) — consigne : « les exercices les plus efficaces pour chaque muscle ». Choix = pour chaque muscle sans animation, l'exercice au matériel courant avec la plus forte part `act` de ce muscle :
@@ -58,27 +58,22 @@ Lot 3 (23/11/2026) — même consigne, rang suivant : pour chaque muscle, l'exer
 cable_cross (pectoraux), ohp_db (deltoïde antérieur), overhead_cable (triceps), cable_crunch (abdominaux), lat_raise_cable (deltoïde latéral), shrug_smith (trapèzes), face_pull (coiffe), incline_curl (biceps), cable_rear_fly (deltoïde postérieur, vue de dos), row_smith (rhomboïdes), reverse_curl (avant-bras), lat_pd_uni (grand dorsal, à genoux, vue de face), pallof (obliques), cable_kickback (fessiers), calf_smith (mollets), trap_dl_db (lombaires), nordic (ischios), sissy (quadriceps), sumo_squat (adducteurs), hanging_leg_raise (fléchisseurs de hanche), cable_abduction (abducteurs), neck_ext (cou), ab_wheel (dentelé / abdominaux).
 Nouveaux outils : `dumbbell(s, r)` → `(main, angle)` (haltère orienté), `frontArm(s)` → `(S, E, H)` (bras de face avec contour, à utiliser dès qu'un bras passe devant le tronc), `pulley(s, x, y)`, `STAND` (jambes debout de profil), `pecD(tp, x, shY)`.
 Corrections moteur : `band()` décale d'un demi-pixel un trait parfaitement vertical/horizontal (sinon le dégradé `objectBoundingBox` ne s'affiche pas). Côtés corrigés : chest_press allumait le dos au lieu des pectoraux, seated_row la poitrine au lieu du dos.
+Lot 4 (23/11/2026) — même consigne, 3e rang : pour chaque muscle, l'exercice non encore animé (matériel courant) avec la plus forte part `act` ; isométriques purs écartés (dead_hang, plank, side_plank, farmer) ; doublon → suivant. Sans nouvel exercice : coiffe (seul dead_hang), obliques (isométriques), fléchisseurs de hanche, tibial (tib_bar hors courant), cou. 18 exercices :
+fly_db (pectoraux, vue depuis les pieds), arnold (deltoïde antérieur, face), overhead_db (triceps), ohp_smith (dentelé — 1er non isométrique), reverse_crunch (abdominaux), upright_row (deltoïde latéral, face), rear_fly_db (deltoïde postérieur + trapèzes, vue de dos buste penché), bayesian_curl (biceps), row_db (rhomboïdes), hammer_curl (avant-bras), lat_pd_close (grand dorsal), glute_bridge (fessiers), calf_db (mollets), rdl_db (lombaires), rdl_smith (ischios), smith_squat (quadriceps), goblet (adducteurs, de profil), step_up (abducteurs).
+Nouveaux outils : `seatBench(s)` + `SEAT` (banc assis, jambes), `endOn(s)` (haltère vu de bout), famille `rdl(smith)`. Convention squats : k = 1 en bas (comme sumo_squat) ; soulevés de terre : k = 1 debout.
+Vérification sans serveur : page de test autonome (anim.js inliné, `export` retirés, T lu dans le hash) capturée par Chrome headless `--screenshot` (`file://…#1.3`).
 **Règle des côtés de `band(s, w, side)`** : normale écran = (−dy, dx) du segment a→b. Tronc hanche→épaule vers le haut : `+1` = avant (pecs, abdos), `−1` = dos. Segment vers le bas (bras, cuisse, tibia) : `+1` = arrière (triceps, ischios, mollets), `−1` = avant (biceps, quadriceps).
 
 ## À faire — priorisé (exercices « courants en salle »)
 Les variantes indiquées « ≈ X » peuvent réutiliser la cinématique de X (changer matériel/poignée).
 
-**Lot 4 — bases les plus utilisées**
-1. bench_smith (développé couché, profil) · ≈ bench_db, close_bench_smith
-2. incline_db (développé incliné) · ≈ incline_smith
-3. fly_db, cable_fly_low (≈ cable_cross, fait)
-4. ohp_smith, arnold (≈ ohp_db, fait)
-5. smith_squat (profil) · ≈ goblet (≈ sumo_squat, fait)
-6. rdl_db (soulevé de terre roumain) · ≈ rdl_smith (≈ trap_dl_db, fait)
-7. glute_bridge (≈ hip_thrust, fait)
-8. row_db (≈ row_smith, fait)
-9. pullup_assist (face) · ≈ pullup, chinup, chinup_assist
-10. lat_pd_close (profil)
+**Prochain lot (5) — même méthode, 4e rang**, sinon les bases restantes :
+bench_smith (≈ bench_db, close_bench_smith), incline_db (≈ incline_smith), cable_fly_low (≈ cable_cross), pullup_assist (face) · ≈ pullup, chinup, chinup_assist.
 
-**Lot 5 — bras, épaules**
-rope_pushdown (≈ pushdown), overhead_db (≈ overhead_cable, fait), skullcrusher, kickback, curl_ez (≈ cable_curl, reverse_curl fait), hammer_curl (≈ rope_curl), bayesian_curl (≈ incline_curl, fait), preacher_db, rear_fly_db (≈ cable_rear_fly, fait), upright_row, calf_db (≈ calf_smith, fait)
+**Lot 6 — bras, épaules**
+rope_pushdown (≈ pushdown), skullcrusher, kickback, curl_ez (≈ cable_curl, reverse_curl fait), rope_curl (≈ hammer_curl, fait), preacher_db
 
-**Lot 6 — tronc, jambes unilatérales, divers**
-reverse_crunch (≈ crunch, fait), plank (≈ side_plank), bulgarian (≈ lunges, step_up), kb_swing, pushup, dips_chest (≈ dips_assist), farmer, dead_hang
+**Lot 7 — tronc, jambes unilatérales, divers**
+plank (≈ side_plank), bulgarian (≈ lunges, step_up), kb_swing, pushup, dips_chest (≈ dips_assist), farmer, dead_hang
 
 Hors « courant » (matériel « si disponible ») : à faire seulement après — hack_squat, pendulum, hip_thrust_m, glute_m, calf_standing, calf_seated, tbar_row, chest_row, incline_m, lat_raise_m, preacher_m, triceps_m, pullover_m, ghr, tib_bar, crunch_m, squat_bb, deadlift, bench_bb, ohp_bb, row_bb, rdl.

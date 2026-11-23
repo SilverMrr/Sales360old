@@ -928,6 +928,264 @@ A.ab_wheel = { view: 'Profil', muscles: 'Abdominaux (grand droit)', build(s) {
   };
 } };
 
+// ------------------------------------------------------------------ lot 4 : le 3e exercice le plus efficace de chaque muscle
+const seatBench = (s, back = true) => { // banc assis, dossier vertical
+  s.rect(-0.16, 0, 0.06, 0.45, C.frame); s.rect(0.2, 0, 0.06, 0.45, C.frame); s.rect(-0.2, 0.45, 0.5, 0.07, C.pad, 0.03);
+  if (back) s.setL(s.ln(24, C.pad), [-0.12, 0.52], torsoPts([-0.11, 0.58], 0.06).sh);
+};
+const SEAT = { knee: [0.44, 0.56], ank: [0.47, 0.1], toe: [0.65, 0.06] };
+const endOn = s => { const a = s.circ(0.075, C.pad), b = s.circ(0.025, C.steel); return p => { s.at(a, p); s.at(b, p); }; }; // haltère vu de bout
+
+// écarté couché vu depuis les pieds : coupe du banc, buste, bras qui se referment au-dessus de la poitrine
+A.fly_db = { view: 'Face', muscles: 'Pectoraux', build(s) {
+  s.rect(-0.035, 0, 0.07, 0.38, C.frame); s.rect(-0.17, 0.38, 0.34, 0.07, C.pad, 0.03);
+  const head = s.circ(0.09, C.skin); s.at(head, [0, 0.62]);
+  const torso = s.el('ellipse', { fill: C.skin }); { const c = s.P([0, 0.54]); torso.setAttribute('cx', c[0]); torso.setAttribute('cy', c[1]); torso.setAttribute('rx', 0.21 * s.scale); torso.setAttribute('ry', 0.095 * s.scale); }
+  const pecs = [hotPath(s), hotPath(s)]; const tp = (x, y) => s.P([x, y]).join(' ');
+  const arms = [frontArm(s), frontArm(s)], dbs = [endOn(s), endOn(s)];
+  return k => {
+    pecs.forEach((p, i) => { const x = i ? 1 : -1;
+      lit(p, `M ${tp(x * 0.02, 0.63)} Q ${tp(x * 0.12, 0.65)} ${tp(x * 0.19, 0.59)} L ${tp(x * 0.15, 0.55)} Q ${tp(x * 0.08, 0.58)} ${tp(x * 0.02, 0.57)} Z`, k); });
+    arms.forEach((arm, i) => { const x = i ? 1 : -1;
+      const S = [x * 0.18, 0.6], a = 80 + 98 * k, E = polar(S, x * a, L.up), H = polar(E, x * (a + 24), L.fore);
+      arm(S, E, H); dbs[i](H); });
+  };
+} };
+
+A.arnold = { view: 'Face', muscles: 'Deltoïdes antérieurs et latéraux', build(s) {
+  s.rect(-0.035, 0, 0.07, 0.47, C.frame); s.rect(-0.22, 0.47, 0.44, 0.07, C.pad, 0.03); s.rect(-0.16, 0.62, 0.32, 0.78, C.pad, 0.04);
+  const fig = frontFigure(s, { seated: true }); const dels = [dot(s, 0.065), dot(s, 0.065)];
+  const arms = [frontArm(s), frontArm(s)], dbs = [dumbbell(s), dumbbell(s)];
+  return k => {
+    const shY = 1.04; fig.update(shY, 0.6);
+    arms.forEach((arm, i) => { const x = i ? 1 : -1, S = [x * 0.19, shY - 0.02];
+      // départ : coudes devant le buste, mains devant le visage ; arrivée : coudes écartés, bras au-dessus de la tête
+      const E = lerp([x * 0.11, shY - 0.2], [x * 0.3, shY + 0.26], k), H = lerp([x * 0.1, shY + 0.1], [x * 0.2, shY + 0.52], k);
+      arm(S, E, H); dbs[i](H, 90); dels[i](S, k); });
+  };
+} };
+
+A.overhead_db = { view: 'Profil', muscles: 'Triceps (chef long)', build(s) {
+  seatBench(s);
+  const fig = sideFigure(s); const tri = band(s, 16, -1, true); const db = dumbbell(s, 0.09);
+  const hip = [0.02, 0.58];
+  return k => {
+    const { sh, head } = torsoPts(hip, 0.06);
+    const elb = polar(sh, 165, L.up), phi = -45 + 220 * k, hand = polar(elb, phi, L.fore);
+    fig.update({ hip, sh, head, ...SEAT, elb, hand });
+    db(polar(hand, phi, 0.05), phi); tri(sh, elb, k);
+  };
+} };
+
+A.ohp_smith = { view: 'Profil', muscles: 'Deltoïdes antérieurs, triceps', build(s) {
+  const bx = 0.16;
+  s.rect(bx - 0.035, 0, 0.07, 1.9, C.frame, 0.02, { opacity: 0.45 });
+  const plate = s.circ(0.15, C.plate);
+  seatBench(s);
+  const fig = sideFigure(s); const del = dot(s, 0.07); const tri = band(s, 16, 1, true);
+  const bar = s.circ(0.035, C.steel); const hip = [0.02, 0.58];
+  return k => {
+    const { sh, head } = torsoPts(hip, 0.06);
+    const hand = [bx, sh[1] + 0.03 + 0.48 * k];
+    const [elb] = ik(sh, hand, L.up, L.fore, [1, -0.6]);
+    s.at(plate, hand); s.at(bar, hand);
+    fig.update({ hip, sh, head, ...SEAT, elb, hand });
+    del(sh, k); tri(sh, elb, k * 0.6);
+  };
+} };
+
+A.reverse_crunch = { view: 'Profil', muscles: 'Abdominaux (bas du grand droit)', build(s) {
+  s.rect(-0.85, 0, 1.4, 0.025, C.pad, 0.01);
+  const fig = sideFigure(s); const ab1 = band(s, 46, 1), ab2 = band(s, 46, 1);
+  const sh = [-0.46, 0.11], mid = [-0.22, 0.11], head = [-0.68, 0.11];
+  return k => {
+    const hip = polar(mid, 90 + 42 * k, 0.24);
+    const ta = 172 + 58 * k, knee = polar(hip, ta, L.thigh), sa = ta - 95, ank = polar(knee, sa, L.shin), toe = polar(ank, sa + 90, L.foot);
+    fig.update({ hip, mid, sh, head, knee, ank, toe, elb: [-0.17, 0.06], hand: [0.09, 0.05] });
+    ab1(hip, mid, k, 0, 1); ab2(mid, sh, k * 0.5, 0, 0.9);
+  };
+} };
+
+A.upright_row = { view: 'Face', muscles: 'Deltoïdes latéraux, trapèzes', build(s) {
+  const fig = frontFigure(s); const traps = [hotPath(s), hotPath(s)]; const dels = [dot(s, 0.065), dot(s, 0.065)];
+  const arms = [frontArm(s), frontArm(s)]; const bar = s.ln(6, C.steel), w = [s.ln(16, C.pad), s.ln(16, C.pad)];
+  const tp = fig.tp;
+  return k => {
+    const shY = 1.4; fig.update(shY, 0.93);
+    traps.forEach((p, i) => { const x = i ? 1 : -1;
+      lit(p, `M ${tp(x * 0.035, 1.5)} Q ${tp(x * 0.08, shY + 0.05)} ${tp(x * 0.19, shY + 0.02)} L ${tp(x * 0.13, shY - 0.04)} Q ${tp(x * 0.06, shY - 0.02)} ${tp(x * 0.02, shY - 0.05)} Z`, k * 0.6); });
+    const hy = 0.86 + 0.46 * k;
+    arms.forEach((arm, i) => { const x = i ? 1 : -1, S = [x * 0.19, shY], H = [x * 0.2, hy];
+      const [E] = ik(S, H, L.up, L.fore, [x, 0.6]); arm(S, E, H); dels[i](S, k); });
+    s.setL(bar, [-0.36, hy], [0.36, hy]); w.forEach((n, i) => { const x = i ? 1 : -1; s.setL(n, [x * 0.3, hy], [x * 0.36, hy]); });
+  };
+} };
+
+// oiseau buste penché, vu de dos : le buste paraît raccourci, la tête plonge entre les épaules
+A.rear_fly_db = { view: 'Dos', muscles: 'Deltoïdes postérieurs, milieu du dos', build(s) {
+  const fig = frontFigure(s); const rh = hotPath(s); const dels = [dot(s, 0.065), dot(s, 0.065)];
+  const arms = [-1, 1].map(() => [s.ln(15, C.skin), s.ln(13, C.skin)]); const dbs = [endOn(s), endOn(s)];
+  const tp = fig.tp;
+  return k => {
+    const shY = 1.2; fig.update(shY, 0.93, { headY: 1.24 });
+    arms.forEach(([u, f], i) => { const x = i ? 1 : -1, S = [x * 0.19, shY], a = 6 + 80 * k;
+      const E = polar(S, x * a, L.up), H = polar(E, x * (a - 14), L.fore);
+      s.setL(u, S, E); s.setL(f, E, H); dbs[i](H); dels[i](S, k); });
+    lit(rh, `M ${tp(-0.03, shY - 0.04)} L ${tp(-0.12, shY - 0.07)} L ${tp(-0.04, shY - 0.2)} L ${tp(0.04, shY - 0.2)} L ${tp(0.12, shY - 0.07)} L ${tp(0.03, shY - 0.04)} Z`, k * 0.5);
+  };
+} };
+
+A.bayesian_curl = { view: 'Profil', muscles: 'Biceps (chef long)', build(s) {
+  s.rect(-0.72, 0, 0.08, 1.9, C.frame, 0.02); pulley(s, -0.62, 0.14);
+  const cable = s.ln(2.5, C.cable), grip = s.ln(10, C.pad);
+  const fig = sideFigure(s, { farLeg: true }); const bi = band(s, 16, -1, true);
+  const hip = [0, 0.92];
+  return k => {
+    const { sh, head } = torsoPts(hip, -0.1);
+    const elb = polar(sh, -24, L.up), phi = -28 + 130 * k, hand = polar(elb, phi, L.fore);
+    fig.update({ hip, sh, head, knee: [0.12, 0.5], ank: [0.17, 0.08], toe: [0.36, 0.04], kneeF: [-0.1, 0.5], ankF: [-0.22, 0.09], toeF: [-0.04, 0.03], elb, hand });
+    s.setL(cable, hand, [-0.62, 0.14]); s.setL(grip, add(hand, [0, -0.05]), add(hand, [0, 0.05]));
+    bi(sh, elb, k);
+  };
+} };
+
+A.row_db = { view: 'Profil', muscles: 'Grand dorsal, milieu du dos, biceps', build(s) {
+  s.rect(-0.55, 0, 0.06, 0.47, C.frame); s.rect(0.32, 0, 0.06, 0.47, C.frame); s.rect(-0.62, 0.47, 1.06, 0.07, C.pad, 0.03);
+  const fig = sideFigure(s, { farLeg: true }); const back = band(s, 46, -1); const bi = band(s, 16, -1, true); const db = dumbbell(s);
+  const hip = [-0.2, 0.92], ank = [-0.3, 0.08];
+  return k => {
+    const { sh, head } = torsoPts(hip, -1.45);
+    const [knee] = ik(hip, ank, L.thigh, L.shin, [1, 0]);
+    const [elbF, handF] = ik(sh, [0.3, 0.56], L.up, L.fore, [1, 0]);
+    const hand = lerp([sh[0] + 0.02, sh[1] - 0.55], [sh[0] - 0.16, sh[1] - 0.2], k);
+    const [elb] = ik(sh, hand, L.up, L.fore, [-0.5, 1]);
+    fig.update({ hip, sh, head, knee, ank, toe: add(ank, [0.19, -0.04]), kneeF: [-0.06, 0.6], ankF: [-0.48, 0.6], toeF: [-0.6, 0.56], elbF, handF, elb, hand });
+    db(hand, 90); back(hip, sh, k, 0.35, 0.95); bi(sh, elb, k * 0.5);
+  };
+} };
+
+A.hammer_curl = { view: 'Profil', muscles: 'Brachial, brachio-radial (avant-bras), biceps', build(s) {
+  const fig = sideFigure(s, { farLeg: true }); const bi = band(s, 16, -1, true); const fa = band(s, 14, -1, true); const db = dumbbell(s, 0.1);
+  const hip = [0, 0.93];
+  return k => {
+    const { sh, head } = torsoPts(hip, 0.02);
+    const elb = add(sh, [0.02, -L.up]), phi = 8 + 128 * k, hand = polar(elb, phi, L.fore);
+    fig.update({ hip, sh, head, ...STAND, ankF: [-0.04, 0.08], toeF: [0.15, 0.04], elb, hand });
+    db(hand, phi + 90); bi(sh, elb, k); fa(elb, hand, k * 0.9);
+  };
+} };
+
+A.lat_pd_close = { view: 'Profil', muscles: 'Grand dorsal, biceps', build(s) {
+  const st = stack(s, -0.62, 0.1, 10, 0.16);
+  s.rect(-0.44, 0, 0.08, 2.2, C.frame, 0.02); s.rect(-0.44, 2.15, 0.6, 0.06, C.frame, 0.03); pulley(s, 0.12, 2.12);
+  s.rect(-0.02, 0.05, 0.07, 0.42, C.frame); s.rect(-0.12, 0.47, 0.44, 0.07, C.pad, 0.03);
+  const cable = s.ln(2.5, C.cable), vh = s.ln(9, C.pad);
+  const fig = sideFigure(s); const lat = band(s, 46, -1); const bi = band(s, 16, -1, true);
+  s.rect(0.3, 0.63, 0.22, 0.07, C.pad, 0.035); s.rect(0.38, 0.7, 0.05, 0.25, C.frame2);
+  const hip = [0.02, 0.58];
+  return k => {
+    const { sh, head } = torsoPts(hip, 0.12 + 0.12 * k);
+    const hand = lerp([sh[0] + 0.12, sh[1] + 0.54], [sh[0] + 0.16, sh[1] - 0.06], k);
+    const [elb] = ik(sh, hand, L.up, L.fore, [-1, -0.2]);
+    fig.update({ hip, sh, head, knee: [0.44, 0.56], ank: [0.47, 0.1], toe: [0.65, 0.06], elb, hand });
+    s.setL(cable, hand, [0.12, 2.12]); s.setL(vh, add(hand, [-0.05, -0.04]), add(hand, [0.05, 0.04]));
+    lat(hip, sh, k, 0.3, 0.85); bi(sh, elb, k * 0.5); st(k * 0.25);
+  };
+} };
+
+A.glute_bridge = { view: 'Profil', muscles: 'Fessiers', build(s) {
+  s.rect(-0.75, 0, 1.4, 0.025, C.pad, 0.01);
+  const fig = sideFigure(s); const gl = dot(s, 0.085); const ham = band(s, 32, 1);
+  const sh = [-0.32, 0.11], ank = [0.38, 0.08];
+  return k => {
+    const th = (2 + 30 * k) * Math.PI / 180, hip = [sh[0] + 0.46 * Math.cos(th), sh[1] + 0.46 * Math.sin(th)];
+    const head = add(sh, mul([sh[0] - hip[0], sh[1] - hip[1]], L.head / 0.46));
+    const [knee] = ik(hip, ank, L.thigh, L.shin, [0, 1]);
+    fig.update({ hip, sh, head, knee, ank, toe: add(ank, [0.18, -0.04]), elb: [-0.03, 0.05], hand: [0.23, 0.05] });
+    gl(add(hip, [-0.03, -0.05]), k); ham(hip, knee, k * 0.4);
+  };
+} };
+
+A.calf_db = { view: 'Profil', muscles: 'Mollets', build(s) {
+  s.rect(0.02, 0, 0.3, 0.08, C.frame2, 0.015);
+  const fig = sideFigure(s, { farLeg: true }); const cf = band(s, 24, 1); const db = dumbbell(s);
+  const toe = [0.17, 0.085];
+  return k => {
+    const phi = 108 - 60 * k, ank = polar(toe, phi + 180, L.foot);
+    const knee = add(ank, [0.01, L.shin]), hip = add(knee, [-0.01, L.thigh]);
+    const { sh, head } = torsoPts(hip, 0.02);
+    const elb = add(sh, [0.02, -L.up]), hand = add(elb, [0, -L.fore]);
+    const kneeF = add(hip, [0.02, -L.thigh]), ankF = add(kneeF, [-0.3, 0.3]);
+    fig.update({ hip, sh, head, knee, ank, toe, kneeF, ankF, toeF: add(ankF, [0.04, -0.18]), elb, hand });
+    db(hand, 90); cf(knee, ank, k, 0.1, 0.75);
+  };
+} };
+
+// soulevé de terre roumain : charnière de hanche, jambes presque tendues ; k = 1 debout (fin de la remontée)
+function rdl(smith) { return { view: 'Profil', muscles: 'Ischio-jambiers, fessiers', build(s) {
+  const bx = 0.07;
+  let plate = null; if (smith) { s.rect(bx - 0.035, 0, 0.07, 1.85, C.frame, 0.02, { opacity: 0.45 }); plate = s.circ(0.17, C.plate); }
+  const fig = sideFigure(s); const ham = band(s, 32, 1); const gl = dot(s, 0.08); const lb = band(s, 46, -1);
+  const db = smith ? null : dumbbell(s, 0.1); const bar = smith ? s.circ(0.035, C.steel) : null;
+  const ank = [0.05, 0.08], toe = [0.24, 0.04];
+  return k => {
+    const hip = lerp([-0.32, 0.86], [0, 0.93], k), { sh, head } = torsoPts(hip, -1.2 + 1.18 * k);
+    const [knee] = ik(hip, ank, L.thigh, L.shin, [1, 0]);
+    let elb, hand;
+    if (smith) { hand = [bx, sh[1] - 0.55]; [elb] = ik(sh, hand, L.up, L.fore, [-1, 0]); s.at(plate, hand); s.at(bar, hand); }
+    else { elb = add(sh, [0, -L.up]); hand = add(elb, [0, -L.fore]); db(hand, 90); }
+    fig.update({ hip, sh, head, knee, ank, toe, elb, hand });
+    ham(hip, knee, k); gl(add(hip, [-0.06, 0]), k * 0.8); lb(hip, sh, k * 0.5, 0.08, 0.6);
+  };
+} }; }
+A.rdl_db = rdl(false);
+A.rdl_smith = rdl(true);
+
+A.smith_squat = { view: 'Profil', muscles: 'Quadriceps, fessiers', build(s) {
+  s.rect(-0.065, 0, 0.07, 2.05, C.frame, 0.02, { opacity: 0.45 }); const plate = s.circ(0.2, C.plate);
+  const fig = sideFigure(s); const q = band(s, 32, -1); const gl = dot(s, 0.08); const bar = s.circ(0.035, C.steel);
+  const ank = [0.12, 0.08];
+  return k => {
+    const hip = lerp([-0.02, 0.93], [-0.25, 0.5], k), lean = Math.asin(hip[0] / L.torso);
+    const { sh, head } = torsoPts(hip, lean);
+    const [knee] = ik(hip, ank, L.thigh, L.shin, [1, 0]);
+    const bp = add(sh, [-0.03, 0.03]); s.at(plate, bp); s.at(bar, bp);
+    const elb = polar(sh, -12 + lean * 57, L.up), hand = add(bp, [0.02, 0]); // coude sous la barre, main sur la barre
+    fig.update({ hip, sh, head, knee, ank, toe: add(ank, [0.19, -0.04]), elb, hand });
+    q(hip, knee, k); gl(add(hip, [-0.06, 0]), k * 0.6);
+  };
+} };
+
+A.goblet = { view: 'Profil', muscles: 'Quadriceps, fessiers', build(s) {
+  const fig = sideFigure(s); const q = band(s, 32, -1); const gl = dot(s, 0.08);
+  const kb = s.circ(0.075, C.pad), hd = s.circ(0.04, 'none', { stroke: C.steel, 'stroke-width': s.W(5) });
+  const ank = [0.05, 0.08];
+  return k => {
+    const hip = lerp([-0.02, 0.93], [-0.2, 0.42], k), lean = -0.38 * k;
+    const { sh, head } = torsoPts(hip, lean);
+    const [knee] = ik(hip, ank, L.thigh, L.shin, [1, 0]);
+    const d = [-Math.sin(lean), Math.cos(lean)], n = [Math.cos(lean), Math.sin(lean)];
+    const c = add(add(sh, mul(d, -0.16)), mul(n, 0.17)), hand = add(c, mul(d, 0.08));
+    const [elb] = ik(sh, hand, L.up, L.fore, [0.3, -1]);
+    fig.update({ hip, sh, head, knee, ank, toe: add(ank, [0.19, -0.04]), elb, hand });
+    s.at(hd, hand); s.at(kb, c); q(hip, knee, k); gl(add(hip, [-0.06, 0]), k * 0.6);
+  };
+} };
+
+A.step_up = { view: 'Profil', muscles: 'Quadriceps, fessiers', build(s) {
+  s.rect(0.14, 0, 0.06, 0.38, C.frame); s.rect(0.52, 0, 0.06, 0.38, C.frame); s.rect(0.08, 0.38, 0.56, 0.07, C.pad, 0.03);
+  const fig = sideFigure(s, { farLeg: true }); const q = band(s, 32, -1); const gl = dot(s, 0.08); const db = dumbbell(s);
+  const ank = [0.3, 0.49], toe = [0.48, 0.45];
+  return k => {
+    const hip = lerp([0, 0.9], [0.27, 1.34], k), { sh, head } = torsoPts(hip, -0.25 + 0.2 * k);
+    const [knee] = ik(hip, ank, L.thigh, L.shin, [1, 0]);
+    const ankF = lerp([-0.1, 0.08], [0.16, 0.62], k), [kneeF] = ik(hip, ankF, L.thigh, L.shin, [1, 0]);
+    const elb = add(sh, [0.02, -L.up]), hand = add(elb, [0, -L.fore]);
+    fig.update({ hip, sh, head, knee, ank, toe, kneeF, ankF, toeF: add(ankF, [0.18, -0.04]), elb, hand });
+    db(hand, 90); q(hip, knee, k); gl(add(hip, [-0.06, 0]), k * 0.8);
+  };
+} };
+
 // ------------------------------------------------------------------ API publique
 const SCALE = { 'Profil': [260, [140, 372]], 'Face': [150, [200, 372]], 'Dos': [150, [200, 372]] };
 const STANDING = { leg_ext: [235, [178, 372]], leg_curl: [235, [178, 372]], chest_press: [235, [175, 372]], shoulder_press_m: [215, [185, 372]], pushdown: [175, [150, 380]], curl_db: [175, [170, 380]], lat_raise_db: [185, [200, 380]], leg_press: [250, [130, 372]], seated_row: [240, [120, 372]],
@@ -938,7 +1196,11 @@ const STANDING = { leg_ext: [235, [178, 372]], leg_curl: [235, [178, 372]], ches
   shrug_smith: [185, [200, 380]], face_pull: [175, [150, 380]], incline_curl: [235, [190, 372]], cable_rear_fly: [170, [200, 380]], row_smith: [200, [150, 380]],
   reverse_curl: [175, [170, 380]], lat_pd_uni: [170, [200, 380]], pallof: [175, [195, 380]], cable_kickback: [175, [150, 380]], calf_smith: [175, [170, 380]],
   nordic: [200, [150, 372]], sissy: [190, [200, 380]], sumo_squat: [185, [200, 380]], hanging_leg_raise: [165, [190, 380]], cable_abduction: [185, [215, 380]],
-  neck_ext: [220, [140, 372]], trap_dl_db: [210, [160, 380]], ab_wheel: [190, [130, 372]] };
+  neck_ext: [220, [140, 372]], trap_dl_db: [210, [160, 380]], ab_wheel: [190, [130, 372]],
+  fly_db: [220, [200, 372]], arnold: [190, [200, 372]], overhead_db: [210, [175, 372]], ohp_smith: [215, [185, 372]], reverse_crunch: [240, [230, 372]],
+  upright_row: [185, [200, 380]], rear_fly_db: [185, [200, 380]], bayesian_curl: [180, [240, 380]], row_db: [230, [205, 378]], hammer_curl: [175, [170, 380]],
+  lat_pd_close: [160, [205, 380]], glute_bridge: [250, [200, 372]], calf_db: [175, [170, 380]], rdl_db: [200, [195, 380]], rdl_smith: [200, [195, 380]],
+  smith_squat: [200, [200, 380]], goblet: [200, [195, 380]], step_up: [165, [180, 380]] };
 
 export const hasAnim = id => id in A;
 export function animInfo(id) { return A[id] ? { view: A[id].view, muscles: A[id].muscles } : null; }
