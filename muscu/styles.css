@@ -253,3 +253,8 @@ table.sess a:hover { color: var(--accent2); }
 .logo-img { width: 26px; height: 26px; border-radius: 7px; display: block; }
 /* iPhone en mode app (barre d'état translucide) */
 .topbar { padding-top: max(10px, env(safe-area-inset-top)); }
+.anim-card { margin-top: 14px; padding: 12px; }
+.anim { width: 100%; max-width: 380px; aspect-ratio: 1; margin: 0 auto; }
+.anim-ctl { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.btn.on { border-color: var(--accent); color: var(--accent2); }
+.tag.anim-t { color: #93c5fd; border-color: rgba(147,197,253,.35); }

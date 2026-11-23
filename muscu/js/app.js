@@ -1,5 +1,6 @@
 import { MUSCLES, EQUIPMENT, EXERCISES, OBJECTIVES, RPE_HELP, DIFFICULTY, gym, availability, exercisesForMuscle } from './data.js';
 import { generateSession, TEMPLATES } from './generator.js';
+import { hasAnim, mountAnim, animInfo } from './anim.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -144,7 +145,7 @@ function exCard(e, muscleId) {
   const pct = muscleId ? e.act[muscleId] : null;
   return `<div class="ex" data-ex="${e.id}">
     <div style="min-width:0"><div class="n">${esc(e.name)}</div>
-      <div class="m"><span class="tag ${['Machine', 'Smith', 'Poulie'].includes(e.equip) ? 'machine' : ''}">${esc(e.equip)}</span><span class="tag ${e.mech}">${e.mech === 'poly' ? 'Poly' : 'Isolation'}</span><span class="tag">${DIFFICULTY[e.diff]}</span>${e.stretch ? '<span class="tag st">Étirement</span>' : ''}</div></div>
+      <div class="m"><span class="tag ${['Machine', 'Smith', 'Poulie'].includes(e.equip) ? 'machine' : ''}">${esc(e.equip)}</span><span class="tag ${e.mech}">${e.mech === 'poly' ? 'Poly' : 'Isolation'}</span><span class="tag">${DIFFICULTY[e.diff]}</span>${e.stretch ? '<span class="tag st">Étirement</span>' : ''}${hasAnim(e.id) ? '<span class="tag anim-t">▶ Animé</span>' : ''}</div></div>
     ${pct != null ? `<div class="pct"><b>${pct} %</b><div class="pbar"><i style="width:${pct}%"></i></div></div>` : ''}
   </div>`;
 }
@@ -172,6 +173,9 @@ function openExercise(id) {
     <div style="padding-right:40px"><h2>${esc(e.name)}</h2>
       <div class="m" style="margin-top:8px"><span class="tag">${esc(e.equip)}</span><span class="tag ${e.mech}">${e.mech === 'poly' ? 'Polyarticulaire' : 'Isolation'}</span><span class="tag">${DIFFICULTY[e.diff]}</span><span class="tag av-${av}">${AV_LABEL[av]}</span></div></div>
     <div class="row" style="margin-top:12px"><button class="btn primary" id="mBody">◎ Voir sur le corps</button></div>
+    ${hasAnim(id) ? `<div class="card anim-card"><div class="anim" id="animBox"></div>
+      <div class="anim-ctl"><span class="muted small">Vue de ${animInfo(id).view.toLowerCase()} · en couleur : ${esc(animInfo(id).muscles)}</span>
+      <span class="row"><button class="btn sm" id="aPlay">⏸ Pause</button><button class="btn sm" id="aSlow">Ralenti</button></span></div></div>` : ''}
 
     <div class="grid2" style="margin-top:16px">
       <div class="card"><h3>Activation musculaire <span class="muted small">estimée</span></h3>
@@ -205,6 +209,11 @@ function openExercise(id) {
     ${e.alts.length ? `<div class="section-title">Alternatives</div><div class="ex-list">${e.alts.map(a => exCard(EXERCISES[a])).join('')}</div>` : ''}
   `, root => {
     $('#mBody', root).onclick = () => showOnBody(id);
+    if (hasAnim(id)) {
+      const a = mountAnim($('#animBox', root), id);
+      $('#aPlay', root).onclick = ev => { a.playing = !a.playing; ev.currentTarget.textContent = a.playing ? '⏸ Pause' : '▶ Lecture'; };
+      $('#aSlow', root).onclick = ev => { a.speed = a.speed === 1 ? 0.5 : 1; ev.currentTarget.classList.toggle('on', a.speed !== 1); };
+    }
     bindMuscleLinks(root);
     bindExCards(root);
   });
