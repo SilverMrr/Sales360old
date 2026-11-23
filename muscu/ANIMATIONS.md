@@ -47,7 +47,7 @@ Consigne de l'utilisateur : **animations 2D simplifiées, cohérentes et claires
 ## Coût mesuré
 Lot 1 (moteur + 10 exercices + intégration) : ~10–12k tokens de code, 2–3 passes de capture. Un exercice supplémentaire ≈ 5–8k tokens. Une variante (même geste, autre matériel) ≈ 1–3k tokens.
 
-## Fait (67)
+## Fait (95)
 Lot 1 : leg_ext, leg_curl, leg_press, chest_press, shoulder_press_m, seated_row, lat_pd, pushdown, curl_db, lat_raise_db
 
 Lot 2 (23/11/2026) — consigne : « les exercices les plus efficaces pour chaque muscle ». Choix = pour chaque muscle sans animation, l'exercice au matériel courant avec la plus forte part `act` de ce muscle :
@@ -62,9 +62,15 @@ Lot 4 (23/11/2026) — même consigne, 3e rang : pour chaque muscle, l'exercice 
 fly_db (pectoraux, vue depuis les pieds), arnold (deltoïde antérieur, face), overhead_db (triceps), ohp_smith (dentelé — 1er non isométrique), reverse_crunch (abdominaux), upright_row (deltoïde latéral, face), rear_fly_db (deltoïde postérieur + trapèzes, vue de dos buste penché), bayesian_curl (biceps), row_db (rhomboïdes), hammer_curl (avant-bras), lat_pd_close (grand dorsal), glute_bridge (fessiers), calf_db (mollets), rdl_db (lombaires), rdl_smith (ischios), smith_squat (quadriceps), goblet (adducteurs, de profil), step_up (abducteurs).
 Nouveaux outils : `seatBench(s)` + `SEAT` (banc assis, jambes), `endOn(s)` (haltère vu de bout), famille `rdl(smith)`. Convention squats : k = 1 en bas (comme sumo_squat) ; soulevés de terre : k = 1 debout.
 Vérification sans serveur : page de test autonome (anim.js inliné, `export` retirés, T lu dans le hash) capturée par Chrome headless `--screenshot` (`file://…#1.3`).
+Lot 5 (23/11/2026) — consigne 100 % : les 4 premiers groupes de la liste, 28 exercices :
+développés couchés (famille `press({ th, tool: 'db'|'smith'|'bb'|'m', floor, close, hip })`, allongé de profil tête à droite, `th` = inclinaison du buste) : bench_db, bench_smith, bench_bb, close_bench_smith, floor_press_db, decline_db, incline_db, incline_smith, incline_bb, incline_m ;
+pompes (famille `pushup({ hy, fy, close })`, corps rigide pivotant autour des chevilles, `hy`/`fy` = hauteur mains/pieds) : pushup, diamond_pushup, pushup_incline, pushup_decline ;
+dips (famille `dips({ lean, assist })`) : dips_chest, dips_assist ; bench_dips ; triceps_m (assis, poignées poussées vers le bas) ;
+poulies pecs : cable_fly_low (face), cable_press (profil) ; épaules : ohp_bb, lat_raise_m (face, assis), lean_lat_raise (face, épaules décalées par `sl`/`sr`), front_raise_db / front_raise_cable (famille `frontRaise(cable)`), y_raise (ventre sur banc incliné), rear_delt_row (tirage horizontal coudes hauts), high_row_cable (à genoux, poulie haute).
+Allongé : côté `band` du tronc hanche→épaule horizontal vers la droite : `+1` = bas, donc pectoraux = `−1` couché sur le dos, `+1` en pompes.
 **Règle des côtés de `band(s, w, side)`** : normale écran = (−dy, dx) du segment a→b. Tronc hanche→épaule vers le haut : `+1` = avant (pecs, abdos), `−1` = dos. Segment vers le bas (bras, cuisse, tibia) : `+1` = arrière (triceps, ischios, mollets), `−1` = avant (biceps, quadriceps).
 
-## À faire — OBJECTIF : 100 % des exercices animés (89 restants au 23/11/2026)
+## À faire — OBJECTIF : 100 % des exercices animés (61 restants au 23/11/2026, après le lot 5)
 
 **Consigne de l'utilisateur : animer TOUS les exercices qui n'ont pas encore d'animation, sans exception** (courants, « si disponible », isométriques compris). On ne s'arrête que quand la liste des manquants est vide.
 
@@ -81,10 +87,6 @@ cd muscu && node -e "globalThis.localStorage={getItem:()=>null,setItem(){},remov
 **Isométriques** (planche, gainage, suspension, hollow, farmer…) : animer une légère respiration / oscillation (k de 0 à 1 = mise en tension), muscle allumé en continu. Ne plus les écarter.
 
 **Liste restante, groupée par cinématique** (« ≈ » = réutiliser la même cinématique en changeant matériel/poignée) :
-- Développés couchés : bench_smith ≈ bench_bb, bench_db, close_bench_smith, floor_press_db, decline_db ; incline_db ≈ incline_smith, incline_bb, incline_m
-- Pompes / dips : pushup ≈ pushup_incline, pushup_decline, diamond_pushup ; dips_chest ≈ dips_assist, bench_dips, triceps_m
-- Pecs poulies : cable_fly_low, cable_press
-- Épaules : ohp_bb ; lat_raise_m ≈ lean_lat_raise ; front_raise_db ≈ front_raise_cable ; y_raise ; rear_delt_row ≈ high_row_cable
 - Biceps : curl_ez ≈ curl_bb, cable_curl, rope_curl ; preacher_db ≈ preacher_m, spider_curl, concentration_curl
 - Triceps : rope_pushdown ≈ pushdown_uni ; skullcrusher ; kickback
 - Avant-bras : reverse_wrist_curl (≈ wrist_curl) ; farmer ; dead_hang
