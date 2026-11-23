@@ -250,3 +250,6 @@ table.sess a:hover { color: var(--accent2); }
 .sx a:hover { color: var(--accent2); }
 .sp { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 13px; color: #c9d1de; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) { .credit { top: 8px; right: 8px; bottom: auto; } }
+.logo-img { width: 26px; height: 26px; border-radius: 7px; display: block; }
+/* iPhone en mode app (barre d'état translucide) */
+.topbar { padding-top: max(10px, env(safe-area-inset-top)); }

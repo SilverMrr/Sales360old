@@ -6,16 +6,20 @@
   <meta name="theme-color" content="#0d1016">
   <title>Muscu Atlas</title>
   <meta name="description" content="Atlas anatomique 3D : muscles cliquables, fiches exercices détaillées et générateur de séances adapté à l'équipement Basic-Fit.">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Muscu Atlas">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="styles.css">
   <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="logo">◆</span> Muscu Atlas</div>
+    <div class="brand"><img class="logo-img" src="icons/icon-192.png" alt=""> Muscu Atlas</div>
     <nav class="tabs" id="tabs">
       <button data-tab="body" class="active"><span class="ic">◎</span><span>Corps</span></button>
       <button data-tab="library"><span class="ic">☰</span><span>Exercices</span></button>
