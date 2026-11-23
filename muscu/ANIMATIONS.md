@@ -64,16 +64,36 @@ Nouveaux outils : `seatBench(s)` + `SEAT` (banc assis, jambes), `endOn(s)` (halt
 Vérification sans serveur : page de test autonome (anim.js inliné, `export` retirés, T lu dans le hash) capturée par Chrome headless `--screenshot` (`file://…#1.3`).
 **Règle des côtés de `band(s, w, side)`** : normale écran = (−dy, dx) du segment a→b. Tronc hanche→épaule vers le haut : `+1` = avant (pecs, abdos), `−1` = dos. Segment vers le bas (bras, cuisse, tibia) : `+1` = arrière (triceps, ischios, mollets), `−1` = avant (biceps, quadriceps).
 
-## À faire — priorisé (exercices « courants en salle »)
-Les variantes indiquées « ≈ X » peuvent réutiliser la cinématique de X (changer matériel/poignée).
+## À faire — OBJECTIF : 100 % des exercices animés (89 restants au 23/11/2026)
 
-**Prochain lot (5) — même méthode, 4e rang**, sinon les bases restantes :
-bench_smith (≈ bench_db, close_bench_smith), incline_db (≈ incline_smith), cable_fly_low (≈ cable_cross), pullup_assist (face) · ≈ pullup, chinup, chinup_assist.
+**Consigne de l'utilisateur : animer TOUS les exercices qui n'ont pas encore d'animation, sans exception** (courants, « si disponible », isométriques compris). On ne s'arrête que quand la liste des manquants est vide.
 
-**Lot 6 — bras, épaules**
-rope_pushdown (≈ pushdown), skullcrusher, kickback, curl_ez (≈ cable_curl, reverse_curl fait), rope_curl (≈ hammer_curl, fait), preacher_db
+**Où écrire (important)**
+- Les animations s'écrivent **uniquement dans `muscu/js/anim.js`** (registre `A[id] = { view, muscles, build }`, l'id doit être exactement celui de l'exercice). Mettre à jour ce fichier-ci (`ANIMATIONS.md`) à chaque lot.
+- Les exercices sont définis dans **deux fichiers** : `muscu/js/exercises.js` (116 d'origine) **et `muscu/js/exercises2.js`** (40 ajoutés le 23/11/2026). Les lire pour les ids, le matériel et les muscles `act`. **Ne pas les modifier** (ni `app.js`, `body.js`, `data.js`, `styles.css`, `index.html`) : une autre session y travaille. Seule exception : le numéro de cache dans `sw.js` (prendre le plus grand numéro existant + 1 ; en cas de conflit git, garder le plus grand + 1).
+- Avant de pousser : `git fetch origin claude/clever-keller-m3mlxa && git merge --no-edit FETCH_HEAD`.
 
-**Lot 7 — tronc, jambes unilatérales, divers**
-plank (≈ side_plank), bulgarian (≈ lunges, step_up), kb_swing, pushup, dips_chest (≈ dips_assist), farmer, dead_hang
+**Lister les manquants** (à relancer en début et fin de lot) :
+```bash
+cd muscu && node -e "globalThis.localStorage={getItem:()=>null,setItem(){},removeItem(){}};(async()=>{const d=await import('./js/data.js');const {ANIM_IDS}=await import('./js/anim.js');const s=new Set(ANIM_IDS);const m=Object.keys(d.EXERCISES).filter(i=>!s.has(i));console.log(m.length,m.join(', '))})()"
+```
 
-Hors « courant » (matériel « si disponible ») : à faire seulement après — hack_squat, pendulum, hip_thrust_m, glute_m, calf_standing, calf_seated, tbar_row, chest_row, incline_m, lat_raise_m, preacher_m, triceps_m, pullover_m, ghr, tib_bar, crunch_m, squat_bb, deadlift, bench_bb, ohp_bb, row_bb, rdl.
+**Isométriques** (planche, gainage, suspension, hollow, farmer…) : animer une légère respiration / oscillation (k de 0 à 1 = mise en tension), muscle allumé en continu. Ne plus les écarter.
+
+**Liste restante, groupée par cinématique** (« ≈ » = réutiliser la même cinématique en changeant matériel/poignée) :
+- Développés couchés : bench_smith ≈ bench_bb, bench_db, close_bench_smith, floor_press_db, decline_db ; incline_db ≈ incline_smith, incline_bb, incline_m
+- Pompes / dips : pushup ≈ pushup_incline, pushup_decline, diamond_pushup ; dips_chest ≈ dips_assist, bench_dips, triceps_m
+- Pecs poulies : cable_fly_low, cable_press
+- Épaules : ohp_bb ; lat_raise_m ≈ lean_lat_raise ; front_raise_db ≈ front_raise_cable ; y_raise ; rear_delt_row ≈ high_row_cable
+- Biceps : curl_ez ≈ curl_bb, cable_curl, rope_curl ; preacher_db ≈ preacher_m, spider_curl, concentration_curl
+- Triceps : rope_pushdown ≈ pushdown_uni ; skullcrusher ; kickback
+- Avant-bras : reverse_wrist_curl (≈ wrist_curl) ; farmer ; dead_hang
+- Tractions : pullup_assist ≈ pullup, chinup, chinup_assist ; lat_pd_supine (≈ lat_pd)
+- Rowings : row_bb ≈ tbar_row, chest_row, inverted_row ; row_cable_uni (≈ row_db) ; pullover_db ≈ pullover_m
+- Charnière : deadlift ; rdl ≈ good_morning_smith, sl_rdl ; kb_swing ≈ pull_through ; ghr
+- Squats / fentes : squat_bb ≈ hack_squat, pendulum, bw_squat ; bulgarian ≈ split_squat_smith, lunges, reverse_lunge ; leg_press_uni (≈ leg_press)
+- Fessiers / adducteurs : hip_thrust_m ≈ hip_thrust_smith ; glute_m ; cable_adduction ; copenhagen
+- Mollets / tibial : calf_standing ≈ calf_bw ; calf_seated ; tib_bar
+- Tronc : crunch_m ; plank ≈ side_plank, hollow ; dead_bug ; russian_twist ; leg_raise_floor ≈ bicycle_crunch ; mountain_climber
+
+Vérification inchangée (captures T = 0 et T = 1,3 pour chaque nouvel id, contrôle des côtés de `band`), puis commit, push, déploiement Netlify depuis `muscu/`.
