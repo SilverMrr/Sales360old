@@ -18,53 +18,55 @@
   <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 </head>
 <body>
+<div class="app">
   <header class="topbar">
-    <div class="brand"><img class="logo-img" src="icons/icon-192.png" alt=""> Muscu Atlas</div>
-    <nav class="tabs" id="tabs">
-      <button data-tab="body" class="active"><span class="ic">◎</span><span>Corps</span></button>
-      <button data-tab="library"><span class="ic">☰</span><span>Exercices</span></button>
-      <button data-tab="session"><span class="ic">▶</span><span>Séance</span></button>
-      <button data-tab="gym"><span class="ic">⚙</span><span>Ma salle</span></button>
-    </nav>
+    <div class="brand"><img class="logo-img" src="icons/icon-192.png" alt=""><span>Muscu Atlas</span></div>
+    <button class="hbtn" id="openGym" title="Matériel de ta salle et sources">
+      <svg viewBox="0 0 24 24"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg><span>Ma salle</span>
+    </button>
   </header>
 
   <main>
     <section id="tab-body" class="tab active">
-      <div class="body-layout">
-        <div class="viewer" id="viewer">
-          <div class="legend" id="legend" hidden></div>
-          <div class="views">
-            <button data-view="front">Face</button>
-            <button data-view="back">Dos</button>
-            <button data-view="left">Profil</button>
-            <button data-focus="upper">Haut</button>
-            <button data-focus="lower">Bas</button>
-            <button data-focus="all">Tout</button>
-            <button id="autoRot" title="Rotation automatique">⟳</button>
+      <div class="viewer" id="viewer">
+        <div class="vbar">
+          <div class="seg" id="viewSeg">
+            <button data-view="front" class="on">Face</button><button data-view="back">Dos</button><button data-view="left">Profil</button>
           </div>
-          <div class="hint">Glisser pour tourner · molette / pincer pour zoomer · clic droit / 2 doigts pour déplacer</div>
-          <div class="loading" id="loading"><div>Chargement du modèle anatomique…</div><div class="lbar"><i id="loadBar"></i></div></div>
-          <div class="tooltip" id="tooltip" hidden></div>
-          <div class="gl-error" id="glError" hidden>Affichage 3D indisponible sur ce navigateur : utilise la liste des muscles.</div>
-          <div class="credit">Modèle : Z-Anatomy / BodyParts3D · CC BY-SA 4.0</div>
+          <button class="ibtn" id="resetView" title="Recentrer"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+          <button class="ibtn" id="autoRot" title="Rotation automatique"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5"/></svg></button>
         </div>
-        <aside class="panel" id="musclePanel"></aside>
+        <div class="hlbar" id="hlBar" hidden></div>
+        <div class="loading" id="loading"><div>Chargement du modèle anatomique…</div><div class="lbar"><i id="loadBar"></i></div></div>
+        <div class="tooltip" id="tooltip" hidden></div>
+        <div class="gl-error" id="glError" hidden>Affichage 3D indisponible sur ce navigateur.<br>Utilise la liste des muscles ci-dessous.</div>
+        <div class="credit">Modèle : Z-Anatomy / BodyParts3D · CC BY-SA 4.0</div>
       </div>
+      <aside class="sheet" id="sheet" data-state="peek">
+        <div class="sheet-head" id="sheetHead"></div>
+        <div class="sheet-body" id="sheetBody"></div>
+      </aside>
     </section>
     <section id="tab-library" class="tab"><div class="wrap" id="libraryView"></div></section>
     <section id="tab-session" class="tab"><div class="wrap" id="sessionView"></div></section>
-    <section id="tab-gym" class="tab"><div class="wrap" id="gymView"></div></section>
   </main>
 
-  <div class="modal" id="modal" hidden>
-    <div class="modal-card" role="dialog" aria-modal="true">
-      <button class="modal-close" id="modalClose" aria-label="Fermer">✕</button>
-      <div id="modalBody"></div>
-    </div>
-  </div>
-  <div class="toast" id="toast" hidden></div>
+  <nav class="tabbar" id="tabs">
+    <button data-tab="body" class="active"><svg viewBox="0 0 24 24"><circle cx="12" cy="4.5" r="2.2"/><path d="M5 9l7 1.5L19 9M12 10.5V15M12 15l-3 6M12 15l3 6"/></svg><span>Corps</span></button>
+    <button data-tab="library"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span>Exercices</span></button>
+    <button data-tab="session"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Séance</span></button>
+  </nav>
+</div>
 
-  <script type="module" src="js/app.js"></script>
-  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+<div class="page" id="page" hidden>
+  <div class="page-card">
+    <div class="page-head"><button class="back" id="pageBack"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Retour</button><div class="page-title" id="pageTitle"></div></div>
+    <div class="page-body" id="pageBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 </body>
 </html>

@@ -6,7 +6,7 @@ Consigne de l'utilisateur : **animations 2D simplifiées, cohérentes et claires
 ## Contexte
 - App : `muscu/` (site statique, pas de build). En ligne : https://muscu-atlas.netlify.app
 - Branche git : `claude/clever-keller-m3mlxa` (dépôt SilverMrr/Sales360old). Committer + pousser après chaque lot.
-- L'app est documentaire (pas de suivi). Les animations s'affichent en tête de la fiche exercice (modale), avec boutons Pause / Ralenti, et l'étiquette « ▶ Animé » sur les cartes.
+- L'app est documentaire (pas de suivi). Les animations s’affichent en tête de la fiche exercice (page plein écran sur mobile, fenêtre sur ordinateur), avec boutons Pause / Ralenti, et l'étiquette « ▶ Animé » sur les cartes.
 
 ## Moteur : `muscu/js/anim.js`
 - Registre `A[exerciseId] = { view: 'Profil' | 'Face', muscles: 'texte affiché', build(s) }`.
