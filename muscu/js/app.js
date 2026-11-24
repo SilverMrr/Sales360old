@@ -1,6 +1,7 @@
 import { MUSCLES, EQUIPMENT, EXERCISES, OBJECTIVES, RPE_HELP, DIFFICULTY, gym, availability, exercisesForMuscle } from './data.js';
 import { generateSession, TEMPLATES } from './generator.js';
 import { hasAnim, mountAnim, animInfo } from './anim.js';
+import { PORTIONS } from './portions.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -23,7 +24,9 @@ const BACK = new Set(['traps', 'rhomboids', 'lats', 'lowerback', 'glutes', 'hams
 const actColor = p => p >= 40 ? '#ff3b30' : p >= 25 ? '#ff7a45' : p >= 12 ? '#ffb347' : p > 0 ? '#ffe08a' : null;
 const LEGEND = [['#ff3b30', '≥ 40 %'], ['#ff7a45', '25–39 %'], ['#ffb347', '12–24 %'], ['#ffe08a', '< 12 %']];
 
-const state = { tab: 'body', muscle: null, highlight: null, objective: store.get('muscu.obj', 'masse'), lib: { q: '', m: '', eq: '', mech: '', mine: false, anim: false } };
+// mêmes nuances que body.js (PART_SHADES), dans l'ordre des portions de PORTIONS
+const PART_HEX = ['#4f86ff', '#1fbf9f', '#a77bff', '#f2a93b'];
+const state = { tab: 'body', muscle: null, part: null, highlight: null, objective: store.get('muscu.obj', 'masse'), lib: { q: '', m: '', eq: '', mech: '', mine: false, anim: false } };
 let body = null;
 
 // ============================================================ ONGLETS
@@ -44,8 +47,10 @@ async function initBody() {
     const tip = $('#tooltip');
     body = new Body3D($('#viewer'), {
       clickable: Object.keys(MUSCLES),
-      onSelect: id => {
-        if (id) { if (state.highlight) { state.highlight = null; applyHighlight(); } selectMuscle(id, { fromBody: true }); }
+      onSelect: (id, part) => {
+        if (id && state.highlight) { state.highlight = null; applyHighlight(); }
+        if (id && id === state.muscle && part && PORTIONS[id]) selectPart(part === state.part ? null : part);
+        else if (id) selectMuscle(id, { fromBody: true });
         else if (state.muscle) selectMuscle(null);
       },
       onHover: (id, e) => {
@@ -61,7 +66,7 @@ async function initBody() {
     await body.ready;
     $('#loading').hidden = true;
     applyHighlight();
-    if (state.muscle) { body.select(state.muscle); body.frame(state.muscle, BACK.has(state.muscle) ? 'back' : 'front'); }
+    if (state.muscle) { bodySelect(); body.frame(state.muscle, BACK.has(state.muscle) ? 'back' : 'front'); }
   } catch (err) {
     console.error(err);
     $('#loading').hidden = true;
@@ -88,7 +93,7 @@ function clearHighlight() { state.highlight = null; applyHighlight(); renderShee
 function showOnBody(exId) {
   const ex = EXERCISES[exId];
   closeAllPages();
-  state.highlight = exId; state.muscle = null; body?.select(null);
+  state.highlight = exId; state.muscle = null; state.part = null; body?.select(null);
   setTab('body'); applyHighlight(); renderSheet(); setSheet('half');
   const side = BACK.has(ex.primary[0]) ? 'back' : 'front';
   setViewBtn(side);
@@ -96,9 +101,16 @@ function showOnBody(exId) {
   requestAnimationFrame(() => body?.frame(main.length ? main : ex.primary, side));
 }
 
+const partOrder = id => (PORTIONS[id] ? Object.keys(PORTIONS[id].parts) : null);
+function bodySelect() { body?.select(state.muscle, state.part, partOrder(state.muscle)); }
+function selectPart(part) {
+  state.part = part; bodySelect(); renderSheet();
+  if (sheet.dataset.state === 'peek') setSheet('half');
+  const box = $('#partBox'); if (box) $('#sheetBody').scrollTop = Math.max(0, box.offsetTop - 70);
+}
 function selectMuscle(id, { fromBody = false } = {}) {
-  state.muscle = id;
-  body?.select(id);
+  state.muscle = id; state.part = null;
+  bodySelect();
   renderSheet();
   if (id) {
     if (sheet.dataset.state === 'peek') setSheet('half');
@@ -168,25 +180,46 @@ function renderSheet() {
   const sec = { ok: [], maybe: [], no: [] };
   for (const e of list) sec[availability(e)].push(e);
   head.innerHTML = `<div class="sh-row"><div class="t"><h2>${esc(m.name)}</h2><div class="s">${esc(m.group)} · ${sec.ok.length + sec.maybe.length} exercices</div></div><button class="x" id="shClose" title="Fermer">${ICON.x}</button></div>`;
-  el.innerHTML = `
-    <details class="fold"><summary>Rôle du muscle et conseils</summary><div class="in">
+  el.innerHTML = `${portionsHtml(id)}
+    <details class="fold"${PORTIONS[id] ? ' style="margin-top:14px"' : ''}><summary>Rôle du muscle et conseils</summary><div class="in">
       <h4>Fonction</h4><p class="txt">${esc(m.fn)}</p>
       <h4>Comment le cibler</h4><p class="txt">${esc(m.tips)}</p>
       <h4>Volume conseillé (hypertrophie)</h4><p class="txt">${m.mev ? `À partir de <b>${m.mev}</b> séries/semaine` : 'Pas de minimum si les exercices de base le sollicitent déjà'} ; au-delà de <b>${m.mrv}</b> séries/semaine, la récupération devient difficile.</p>
       <p class="muted small" style="margin-top:10px"><i>${esc(m.latin)}</i></p>
     </div></details>
+    ${PORTIONS[id] ? '<div class="label" style="margin-top:22px"><span>Tous les exercices du muscle</span></div>' : ''}
     ${sec.ok.length ? `<div class="label"><span>Dans ta salle</span><span>sollicitation</span></div><div class="ex-list">${sec.ok.map(e => exCard(e, { muscle: id })).join('')}</div>` : ''}
     ${sec.maybe.length ? `<div class="label"><span>Si disponible dans ton club</span></div><div class="ex-list">${sec.maybe.map(e => exCard(e, { muscle: id })).join('')}</div>` : ''}
     ${sec.no.length ? `<details class="fold" style="margin-top:18px"><summary>Matériel absent de ta salle (${sec.no.length})</summary><div class="in"><div class="ex-list dim">${sec.no.map(e => exCard(e, { muscle: id })).join('')}</div></div></details>` : ''}`;
   $('#shClose').onclick = () => selectMuscle(null);
+  $$('[data-part]', el).forEach(b => b.addEventListener('click', () => selectPart(b.dataset.part === state.part || b.dataset.part === '' ? null : b.dataset.part)));
   bindExCards(el);
 }
 
-function exCard(e, { muscle } = {}) {
+// Portions d'un muscle complexe : légende cliquable (couleurs = 3D) + fiche de la portion choisie
+function portionsHtml(id) {
+  const P = PORTIONS[id]; if (!P) return '';
+  const keys = Object.keys(P.parts);
+  const pills = `<div class="parts">${keys.map((k, i) => `<button class="part ${state.part === k ? 'on' : ''} ${state.part && state.part !== k ? 'off' : ''}" data-part="${k}"><i style="background:${PART_HEX[i % PART_HEX.length]}"></i><span>${esc(P.parts[k].name)}</span></button>`).join('')}</div>`;
+  if (!state.part) return `<div class="label" style="margin-top:4px"><span>Portions du muscle</span></div>${pills}<p class="muted small" style="margin-top:8px;line-height:1.5">${esc(P.note)} Touche une portion (ici ou sur le corps) pour voir comment la cibler.</p>`;
+  const p = P.parts[state.part];
+  const rank = { ok: 0, maybe: 1, no: 2 };
+  const sorted = p.ex.map((x, i) => [EXERCISES[x], i]).sort((a, b) => rank[availability(a[0])] - rank[availability(b[0])] || a[1] - b[1]).map(x => x[0]);
+  return `<div class="label" style="margin-top:4px"><span>Portions du muscle</span><button class="link small" data-part="">Tout le muscle</button></div>${pills}
+    <div class="card part-card" id="partBox">
+      <h3>${esc(p.name)}</h3><p class="muted small" style="margin:-6px 0 10px"><i>${esc(p.latin)}</i></p>
+      <p class="txt">${esc(p.fn)}</p>
+      <div class="box"><b>Pour la cibler</b> : ${esc(p.how)}</div>
+      <div class="label"><span>Exercices qui la ciblent le plus</span></div>
+      <div class="ex-list">${sorted.map(e => exCard(e, { av: true })).join('')}</div>
+    </div>`;
+}
+
+function exCard(e, { muscle, av: showAv = false } = {}) {
   const pct = muscle ? e.act[muscle] : null;
   const av = availability(e);
   const sub = muscle ? `${e.equip} · ${MECH[e.mech]}` : `${e.equip} · ${e.primary.map(m => MUSCLES[m].name).join(', ')}`;
-  const avTxt = !muscle && av !== 'ok' ? ` · <span style="color:${av === 'maybe' ? '#fde047' : '#fca5a5'}">${AV[av][1].toLowerCase()}</span>` : '';
+  const avTxt = (!muscle || showAv) && av !== 'ok' ? ` · <span style="color:${av === 'maybe' ? '#fde047' : '#fca5a5'}">${AV[av][1].toLowerCase()}</span>` : '';
   return `<button class="ex" data-ex="${e.id}">
     <div class="t"><div class="n">${esc(e.name)}</div>
       <div class="m">${hasAnim(e.id) ? '<span class="play">▶ Animé</span> · ' : ''}${esc(sub)}${avTxt}</div></div>

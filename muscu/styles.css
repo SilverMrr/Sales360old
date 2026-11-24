@@ -233,3 +233,12 @@ table.kv td:first-child { color: var(--muted); width: 38%; padding-right: 12px; 
   .page-body { padding: 22px 26px 36px; }
   .toast { bottom: 24px; }
 }
+
+/* portions d'un muscle */
+.parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 7px; }
+.part { display: flex; align-items: center; gap: 9px; text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 11px; padding: 9px 11px; font-size: 13.5px; color: var(--text2); line-height: 1.25; }
+.part i { width: 12px; height: 12px; border-radius: 4px; flex: none; }
+.part.on { border-color: var(--accent); background: rgba(91,140,255,.14); color: var(--text); font-weight: 600; }
+.part.off { opacity: .55; }
+.part-card { margin-top: 12px; }
+.part-card .label:first-of-type { margin-top: 16px; }

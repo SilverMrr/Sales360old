@@ -11,6 +11,9 @@ const OTHER_COLOR = 0x7c4a46;
 const BONE_COLOR = 0xd8cfbf;
 const DIM_COLOR = 0x4d4444;
 const SEL_COLOR = 0x4f86ff;
+// nuances pour distinguer les portions d'un muscle sélectionné
+const PART_SHADES = [0x4f86ff, 0x1fbf9f, 0xa77bff, 0xf2a93b];
+const PART_DIM = 0x55627e;
 const HEAD_COLOR = 0x8a5550;
 
 // Détourage léger : assombrit les bords des formes (angle rasant), ce qui sépare visuellement les muscles.
@@ -119,7 +122,7 @@ export class Body3D {
     const model = gltf.scene;
     model.traverse(o => {
       if (!o.isMesh) return;
-      const id = o.name.replace(/_\d+$/, '');
+      const [id, part = null] = o.name.replace(/_\d+$/, '').split('__');
       const isBone = id === 'bones';
       o.material = new THREE.MeshStandardMaterial({
         color: isBone ? BONE_COLOR : id === 'other' ? OTHER_COLOR : MUSCLE_COLOR,
@@ -127,7 +130,7 @@ export class Body3D {
       });
       if (!isBone) outline(o.material);
       o.userData.id = id;
-      if (this.clickable.has(id)) { o.userData.muscle = id; this.meshes[id] = o; }
+      if (this.clickable.has(id)) { o.userData.muscle = id; o.userData.part = part; (this.meshes[id] ||= []).push(o); }
       if (id === 'other' || id === 'bones') { o.updateMatrixWorld(true); trimHead(o); }
       if (id === 'other') this.passive.push(o);
     });
@@ -154,12 +157,12 @@ export class Body3D {
       if (!down) return;
       const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null;
       if (moved > 6) return;
-      const id = this.pick(e);
-      this.select(id); this.onSelect?.(id);
+      const { id, part } = this.pick(e);
+      this.onSelect?.(id, part);
     });
     el.addEventListener('pointermove', e => {
       if (e.pointerType !== 'mouse') return;
-      const id = this.pick(e);
+      const { id } = this.pick(e);
       if (id !== this.hovered) { this.hovered = id; this.refresh(); el.style.cursor = id ? 'pointer' : 'grab'; }
       this.onHover?.(id, e);
     });
@@ -170,19 +173,32 @@ export class Body3D {
     this.pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hit = this.raycaster.intersectObjects(this.root.children, true)[0];
-    return hit?.object.userData.muscle || null;
+    return { id: hit?.object.userData.muscle || null, part: hit?.object.userData.part || null };
   }
-  select(id) { this.selected = id; this.refresh(); }
+  // part : portion du muscle (null = muscle entier, portions affichées en nuances)
+  // order : ordre des portions (pour que les nuances correspondent à la légende de l'app)
+  select(id, part = null, order = null) { this.selected = id; this.selPart = part; this.partOrder = order; this.refresh(); }
+  partsOf(id) { return (id === this.selected && this.partOrder) || [...new Set((this.meshes[id] || []).map(m => m.userData.part).filter(Boolean))]; }
   // fn(id) -> couleur hex ou null (null = couleur "atténuée")
   setColorFn(fn) { this.colorFn = fn; this.refresh(); }
   refresh() {
     for (const m of this.passive) m.material.color.set(this.colorFn ? DIM_COLOR : (m.userData.id === 'other' ? OTHER_COLOR : HEAD_COLOR));
-    for (const [id, m] of Object.entries(this.meshes)) {
-      const c = this.colorFn ? (this.colorFn(id) ?? DIM_COLOR) : MUSCLE_COLOR;
-      m.material.color.set(c);
-      if (id === this.selected) { m.material.color.set(SEL_COLOR); m.material.emissive.set(0x1d3d9e); m.material.emissiveIntensity = 0.35; }
-      else if (id === this.hovered) { m.material.emissive.set(0xffffff); m.material.emissiveIntensity = 0.15; }
-      else m.material.emissive.set(0x000000);
+    for (const [id, list] of Object.entries(this.meshes)) {
+      const parts = this.partsOf(id);
+      for (const m of list) {
+        const mat = m.material, p = m.userData.part;
+        mat.color.set(this.colorFn ? (this.colorFn(id) ?? DIM_COLOR) : MUSCLE_COLOR);
+        mat.emissive.set(0x000000);
+        if (id === this.selected) {
+          if (this.selPart) {
+            if (p === this.selPart) { mat.color.set(SEL_COLOR); mat.emissive.set(0x1d3d9e); mat.emissiveIntensity = 0.45; }
+            else mat.color.set(PART_DIM);
+          } else {
+            mat.color.set(p && parts.includes(p) ? PART_SHADES[parts.indexOf(p) % PART_SHADES.length] : SEL_COLOR);
+            mat.emissive.set(0x1d3d9e); mat.emissiveIntensity = 0.25;
+          }
+        } else if (id === this.hovered) { mat.emissive.set(0xffffff); mat.emissiveIntensity = 0.15; }
+      }
     }
   }
   // Animation caméra vers (cible, position)
@@ -213,7 +229,10 @@ export class Body3D {
   // Cadre un ou plusieurs muscles (face ou dos selon `side`, sinon direction actuelle)
   frame(ids, side) {
     const box = new THREE.Box3();
-    for (const id of [].concat(ids)) if (this.meshes[id]) box.expandByObject(this.meshes[id]);
+    for (const key of [].concat(ids)) {
+      const [id, part] = key.split('__');
+      for (const m of this.meshes[id] || []) if (!part || m.userData.part === part) box.expandByObject(m);
+    }
     if (box.isEmpty()) return;
     const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
     const fov = THREE.MathUtils.degToRad(this.camera.fov), aspect = this.camera.aspect;
